@@ -11,14 +11,15 @@ class MapWidget extends StatefulWidget {
 class MapState extends State<MapWidget> {
   GoogleMapController mapController;
   Location location;
-  LocationData currentLocation;
+  var currentLocation;
 
   @override
-  void initState() async {
+  void initState() {
     super.initState();
 
     location = new Location();
-    currentLocation = await location.getLocation();
+    currentLocation = location
+        .getLocation(); //TODO: do an await and change the var type of currentLocation
 
     location.onLocationChanged.listen((LocationData locationData) {
       currentLocation = locationData;
@@ -42,7 +43,7 @@ class MapState extends State<MapWidget> {
       },
       initialCameraPosition: CameraPosition(
         target: LatLng(45.521563, -122.677433),
-        zoom: 11.0,
+        zoom: 15.0,
       ),
       myLocationEnabled: true,
       myLocationButtonEnabled: true,

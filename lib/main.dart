@@ -124,6 +124,9 @@ class _MyHomePageState extends State<MyHomePage> {
     Color accentColor = Theme.of(context).accentColor;
     Color backgroundColor = Theme.of(context).backgroundColor;
     TextTheme textTheme = Theme.of(context).textTheme;
+    MapState myMap = MapState();
+    myMap.initState();
+    myMap.build(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -159,7 +162,7 @@ class _MyHomePageState extends State<MyHomePage> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.all(Radius.circular(20)),
               ),
-              child: MapState().build(context),
+              child: myMap.build(context),
             ),
           ],
         ),
