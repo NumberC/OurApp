@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:our_app/UserProfile.dart';
 import 'package:our_app/map.dart';
 
 void main() {
@@ -140,9 +141,17 @@ class _MyHomePageState extends State<MyHomePage> {
           color: primaryColor,
         ),
         actions: [
-          Icon(
-            Icons.person,
-            color: primaryColor,
+          FlatButton(
+            child: Icon(
+              Icons.person,
+              color: primaryColor,
+            ),
+            onPressed: () => {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => UserProfile()),
+              ),
+            },
           ),
         ],
         backgroundColor: Color.fromRGBO(255, 255, 255, 1.0),
@@ -152,10 +161,6 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            getInputTxt(context, "Store"),
-            getInputTxt(context, "Address"),
-            Text("Enter In a Store And Address"),
-            getProfileBar(context, "Michael Jackson", 16.50),
             Container(
               width: 200,
               height: 200,
@@ -164,6 +169,10 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               child: myMap.build(context),
             ),
+            getInputTxt(context, "Store"),
+            getInputTxt(context, "Address"),
+            Text("Enter In a Store And Address"),
+            getProfileBar(context, "Michael Jackson", 16.50),
           ],
         ),
       ),
