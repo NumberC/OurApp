@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:geocoder/geocoder.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
 
@@ -21,14 +23,24 @@ class MapState extends State<MapWidget> {
     currentLocation = location
         .getLocation(); //TODO: do an await and change the var type of currentLocation
 
-    location.onLocationChanged.listen((LocationData locationData) {
-      currentLocation = locationData;
+    location.onLocationChanged.listen((LocationData currentLocation) {
       if (mapController != null) {
         mapController.animateCamera(CameraUpdate.newLatLng(
             LatLng(currentLocation.latitude, currentLocation.longitude)));
       }
-      print("Change");
+      //print("Change");
+      //print(locationData);
     });
+    getAddress(40.215748, -74.662743); //40.215748, -74.662743 //TODO: add await
+  }
+
+  void getAddress(lat, lng) async {
+    var addresses = await Geocoder.local
+        .findAddressesFromCoordinates(Coordinates(lat, lng));
+    var first = addresses.first;
+    print(addresses);
+    print("${first.featureName} : ${first.addressLine}");
+    //return "Address";
   }
 
   void _onMapCreated(GoogleMapController controller) {
@@ -48,7 +60,14 @@ class MapState extends State<MapWidget> {
       myLocationEnabled: true,
       myLocationButtonEnabled: true,
       buildingsEnabled: true,
+      markers: Set<Marker>(),
     );
+
+    googleMap.markers.add(Marker(
+      markerId: MarkerId("Hi"),
+      position: LatLng(40.215748, -74.662743),
+      icon: BitmapDescriptor.defaultMarker,
+    ));
 
     return Scaffold(
       body: Stack(

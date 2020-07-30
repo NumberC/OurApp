@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:our_app/UserProfile.dart';
 import 'package:our_app/map.dart';
 
-void main() {
+Future main() async {
+  await DotEnv().load('.env');
+  print(DotEnv().env);
   runApp(MyApp());
 }
 
@@ -12,6 +15,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     String companyName = "OurName";
+    print("HIIIIIIIIIIIIII");
+    print(DotEnv().env);
+    print(DotEnv().env['VAR_NAME']);
 
     return MaterialApp(
       title: companyName,
