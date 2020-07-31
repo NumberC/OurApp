@@ -1,7 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:our_app/Core/firebasDB.dart';
+
+DocumentReference driver = firebaseDB().getDriverById("UID");
 
 class UserProfile extends StatefulWidget {
   @override
@@ -9,16 +13,37 @@ class UserProfile extends StatefulWidget {
 }
 
 class UserProfileState extends State<UserProfile> {
-  String name = "Michael Jackson";
-  String price = "\$18.60";
+  String name = "Loading";
+  double price = 18.60;
+  double averageRating = 2;
+  Column reviewColumn = new Column(children: <Widget>[]);
+  Map<String, dynamic> driverData;
+
+  @override
+  void initState() {
+    super.initState();
+
+    asyncInit();
+  }
+
+  void asyncInit() async {
+    driverData = await firebaseDB().getDriverDataByReference(driver);
+    averageRating = await firebaseDB().getAverageDriverRating(driver);
+    await getReviewContent(
+        Theme.of(context).primaryColor, Theme.of(context).accentColor);
+    setState(() {
+      name = driverData["Name"];
+      averageRating = averageRating;
+    });
+  }
+
+  void onHireBtnPressed() async {
+    print("Hired!");
+  }
 
   FlatButton getHireButton(color) {
     return FlatButton(
-      onPressed: () async {
-        await firebaseDB().getNearByDrivers("USA", "NJ", "Hamilton");
-        firebaseDB().getUserRatings();
-        print("Hired!");
-      },
+      onPressed: () async => onHireBtnPressed(),
       child: Container(
         height: 40,
         alignment: Alignment.center,
@@ -48,24 +73,36 @@ class UserProfileState extends State<UserProfile> {
     );
   }
 
-  Row getStarRating(color, size) {
-    Row starRow = Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: <Widget>[],
-    );
-
-    for (int i = 0; i < 5; i++) {
-      Icon star = Icon(
+  Widget getStarRating(double rating, color, accentColor, size) {
+    return RatingBarIndicator(
+      rating: rating,
+      direction: Axis.horizontal,
+      itemCount: 5,
+      itemPadding: EdgeInsets.symmetric(horizontal: 4.0),
+      itemBuilder: (context, _) => Icon(
         Icons.star,
         color: color,
-        size: size,
-      );
-      starRow.children.add(star);
-    }
-    return starRow;
+      ),
+      unratedColor: accentColor,
+      itemSize: size,
+    );
   }
 
-  Container getReview(reviewText, primaryColor, accentColor) {
+  Future<void> getReviewContent(primaryColor, accentColor) async {
+    Column newColumn = Column(children: <Widget>[]);
+    await firebaseDB()
+        .getDriverReviews(driver)
+        .then((value) => value.documents.forEach((element) {
+              print(element.data);
+              newColumn.children.add(getReview(element.data["Review"],
+                  element.data["Rating"] * 1.0, primaryColor, accentColor));
+            }));
+    setState(() {
+      reviewColumn = newColumn;
+    });
+  }
+
+  Container getReview(reviewText, rating, primaryColor, accentColor) {
     double margin = 10;
     double padding = 10;
 
@@ -78,7 +115,7 @@ class UserProfileState extends State<UserProfile> {
           ),
           Column(
             children: <Widget>[
-              getStarRating(Colors.white, 20.0),
+              getStarRating(rating, Colors.white, Colors.grey, 20.0),
               Text(reviewText),
             ],
           )
@@ -119,21 +156,19 @@ class UserProfileState extends State<UserProfile> {
                 ),
               ],
             ),
-            getStarRating(primaryColor, 40.0),
+            getStarRating(averageRating, primaryColor, accentColor, 40.0),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
                 Text(name),
-                Text(price),
+                Text("\$$price"),
               ],
             ),
             Align(
               alignment: Alignment.centerLeft,
               child: Text("Reviews:"),
             ),
-            getReview("Hello there", primaryColor, accentColor),
-            getReview("Hello there", primaryColor, accentColor),
-            getReview("Hello there", primaryColor, accentColor),
+            reviewColumn,
             Row(
               children: <Widget>[
                 Expanded(
