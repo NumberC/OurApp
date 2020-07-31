@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:our_app/Core/firebasDB.dart';
 
 class UserProfile extends StatefulWidget {
   @override
@@ -13,8 +14,10 @@ class UserProfileState extends State<UserProfile> {
 
   FlatButton getHireButton(color) {
     return FlatButton(
-      onPressed: () => {
-        print("Hired!"),
+      onPressed: () async {
+        await firebaseDB().getNearByDrivers("USA", "NJ", "Hamilton");
+        firebaseDB().getUserRatings();
+        print("Hired!");
       },
       child: Container(
         height: 40,
