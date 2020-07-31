@@ -9,8 +9,9 @@
 .history
 .svn/
 
-#Ignore environment var
+#Ignore environment var and Google files
 *.env
+google-services.json
 
 # IntelliJ related
 *.iml
