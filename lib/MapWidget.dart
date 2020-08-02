@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:geocoder/geocoder.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
+import 'package:our_app/Core/FirebasDB.dart';
 
 class MapWidget extends StatefulWidget {
   @override
@@ -19,8 +20,8 @@ class MapState extends State<MapWidget> {
     super.initState();
 
     location = new Location();
-    currentLocation = location
-        .getLocation(); //TODO: do an await and change the var type of currentLocation
+    //TODO: do an await and change the var type of currentLocation
+    currentLocation = location.getLocation();
 
     location.onLocationChanged.listen((LocationData currentLocation) {
       if (mapController != null) {
@@ -28,8 +29,11 @@ class MapState extends State<MapWidget> {
             LatLng(currentLocation.latitude, currentLocation.longitude)));
       }
       //print("Change");
-      //print(locationData);
+      //print(currentLocation.latitude);
+      //getAddress(currentLocation.latitude, currentLocation.longitude);
+      //FirebaseDB().updateUserLocationById(id, loc);
     });
+    print(currentLocation);
     getAddress(40.215748, -74.662743); //40.215748, -74.662743 //TODO: add await
   }
 
@@ -37,8 +41,12 @@ class MapState extends State<MapWidget> {
     var addresses = await Geocoder.local
         .findAddressesFromCoordinates(Coordinates(lat, lng));
     var first = addresses.first;
-    print(addresses);
-    print("${first.featureName} : ${first.addressLine}");
+    print(first.addressLine);
+    print(first.locality);
+    print(first.featureName);
+    print(first.adminArea);
+    print(first.subAdminArea);
+    print(first.countryName);
     //return "Address";
   }
 

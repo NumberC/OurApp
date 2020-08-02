@@ -3,9 +3,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:our_app/Core/firebasDB.dart';
+import 'package:our_app/Core/FirebasDB.dart';
+import 'package:transparent_image/transparent_image.dart';
 
-DocumentReference driver = firebaseDB().getDriverById("UID");
+DocumentReference driver = FirebaseDB().getDriverById("UID");
 
 class UserProfile extends StatefulWidget {
   @override
@@ -14,6 +15,7 @@ class UserProfile extends StatefulWidget {
 
 class UserProfileState extends State<UserProfile> {
   String name = "Loading";
+  String profilePic;
   double price = 18.60;
   double averageRating = 2;
   Column reviewColumn = new Column(children: <Widget>[]);
@@ -27,8 +29,9 @@ class UserProfileState extends State<UserProfile> {
   }
 
   void asyncInit() async {
-    driverData = await firebaseDB().getDriverDataByReference(driver);
-    averageRating = await firebaseDB().getAverageDriverRating(driver);
+    driverData = await FirebaseDB().getDriverDataByReference(driver);
+    averageRating = await FirebaseDB().getAverageDriverRating(driver);
+    profilePic = await FirebaseDB().getUserProfilePicture("UID");
     await getReviewContent(
         Theme.of(context).primaryColor, Theme.of(context).accentColor);
     setState(() {
@@ -63,12 +66,18 @@ class UserProfileState extends State<UserProfile> {
 
   Container getProfilePicture(color) {
     double radius = 150;
+
     return Container(
       width: radius,
       height: radius,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: color,
+        image: DecorationImage(
+            image: NetworkImage((profilePic != null)
+                ? profilePic
+                : kTransparentImage.toString()),
+            fit: BoxFit.fill),
       ),
     );
   }
@@ -90,7 +99,7 @@ class UserProfileState extends State<UserProfile> {
 
   Future<void> getReviewContent(primaryColor, accentColor) async {
     Column newColumn = Column(children: <Widget>[]);
-    await firebaseDB()
+    await FirebaseDB()
         .getDriverReviews(driver)
         .then((value) => value.documents.forEach((element) {
               print(element.data);

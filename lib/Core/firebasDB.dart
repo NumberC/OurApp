@@ -1,9 +1,11 @@
 import 'dart:ffi';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
-class firebaseDB {
+class FirebaseDB {
   final Firestore firestoreInstance = Firestore.instance;
+  final FirebaseStorage fireStorageInstance = FirebaseStorage.instance;
 
   Firestore getInstance() {
     return firestoreInstance;
@@ -94,5 +96,17 @@ class firebaseDB {
 
   DocumentReference getUserById(String id) {
     return firestoreInstance.collection("Users").document(id);
+  }
+
+  Future<String> getUserProfilePicture(String id) async {
+    try {
+      return await fireStorageInstance
+          .ref()
+          .child(id)
+          .child("Profile.png")
+          .getDownloadURL();
+    } catch (Exception) {
+      return null;
+    }
   }
 }

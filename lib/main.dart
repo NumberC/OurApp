@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:our_app/UserProfile.dart';
-import 'package:our_app/map.dart';
+import 'package:our_app/MapWidget.dart';
 
 Future<void> main() async {
   runApp(MyApp());
@@ -159,14 +159,10 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.all(Radius.circular(20)),
-              ),
+              height: 0.3 * MediaQuery.of(context).size.height,
+              width: MediaQuery.of(context).size.width,
               child: myMap.build(context),
             ),
             getInputTxt(context, "Store"),
