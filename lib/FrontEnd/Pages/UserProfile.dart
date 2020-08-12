@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:our_app/Core/FirebasDB.dart';
+import 'package:our_app/FrontEnd/Widgets/AppHeader.dart';
 import 'package:transparent_image/transparent_image.dart';
 
 DocumentReference driver = FirebaseDB().getDriverById("UID");
@@ -147,6 +148,7 @@ class UserProfileState extends State<UserProfile> {
     TextTheme textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
+      appBar: AppHeader().build(context),
       body: Padding(
         padding: EdgeInsets.fromLTRB(20, 0, 20, 0),
         child: Column(
@@ -188,6 +190,7 @@ class UserProfileState extends State<UserProfile> {
           ],
         ),
       ),
+      backgroundColor: backgroundColor,
     );
   }
 }

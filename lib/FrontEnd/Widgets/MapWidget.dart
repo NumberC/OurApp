@@ -25,8 +25,8 @@ class MapState extends State<MapWidget> {
 
     location.onLocationChanged.listen((LocationData currentLocation) {
       if (mapController != null) {
-        mapController.animateCamera(CameraUpdate.newLatLng(
-            LatLng(currentLocation.latitude, currentLocation.longitude)));
+        /*mapController.animateCamera(CameraUpdate.newLatLng(
+            LatLng(currentLocation.latitude, currentLocation.longitude)));*/
       }
       //print("Change");
       //print(currentLocation.latitude);
@@ -66,6 +66,8 @@ class MapState extends State<MapWidget> {
       ),
       myLocationEnabled: true,
       myLocationButtonEnabled: true,
+      zoomControlsEnabled: false,
+      zoomGesturesEnabled: true,
       buildingsEnabled: true,
       markers: Set<Marker>(),
     );
