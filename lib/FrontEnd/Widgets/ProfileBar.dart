@@ -1,13 +1,17 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:our_app/Core/FirebasDB.dart';
 import 'package:our_app/FrontEnd/Pages/UserProfile.dart';
 
 class ProfileBar extends StatelessWidget {
-  ProfileBar({this.name, this.price, this.rating});
-  final String name;
+  ProfileBar({this.uid, this.price});
+
+  FirebaseDB firebaseDB = new FirebaseDB();
+  final String uid;
   final double price;
-  final double rating;
+  String name;
+  double rating;
 
   @override
   Widget build(BuildContext context) {
@@ -28,10 +32,7 @@ class ProfileBar extends StatelessWidget {
         Expanded(
           child: GestureDetector(
             onTap: () => {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => UserProfile()),
-              ),
+              Navigator.pushNamed(context, "/Profile", arguments: uid),
             },
             child: Container(
               height: 50,
@@ -50,18 +51,34 @@ class ProfileBar extends StatelessWidget {
                       Column(
                         children: [
                           Padding(padding: EdgeInsets.all(3)),
-                          Text("$name"),
-                          RatingBarIndicator(
-                            rating: rating,
-                            direction: Axis.horizontal,
-                            itemCount: 5,
-                            itemPadding: EdgeInsets.symmetric(horizontal: 1.0),
-                            itemBuilder: (context, _) => Icon(
-                              Icons.star,
-                              color: Colors.white,
-                            ),
-                            unratedColor: null,
-                            itemSize: 20,
+                          new FutureBuilder(
+                            future: firebaseDB.getUserNameByID(this.uid),
+                            builder: (BuildContext context,
+                                AsyncSnapshot<String> snapshot) {
+                              name = snapshot.data;
+                              return Text("$name");
+                            },
+                          ),
+                          new FutureBuilder(
+                            future: firebaseDB.getAverageDriverRating(
+                                firebaseDB.getDriverById(uid)),
+                            builder: (BuildContext context,
+                                AsyncSnapshot<double> snapshot) {
+                              rating = snapshot.data;
+                              return RatingBarIndicator(
+                                rating: rating,
+                                direction: Axis.horizontal,
+                                itemCount: 5,
+                                itemPadding:
+                                    EdgeInsets.symmetric(horizontal: 1.0),
+                                itemBuilder: (context, _) => Icon(
+                                  Icons.star,
+                                  color: Colors.white,
+                                ),
+                                unratedColor: null,
+                                itemSize: 20,
+                              );
+                            },
                           ),
                         ],
                       ),

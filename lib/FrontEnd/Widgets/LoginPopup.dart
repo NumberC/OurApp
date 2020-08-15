@@ -36,20 +36,39 @@ class LoginPopup extends StatelessWidget {
     return null;
   }
 
-  void onLoginBtnClick() {
+  void onLoginBtnClick(context) async {
     if (formKey.currentState.validate()) {
       formKey.currentState.save();
-      print("Finally");
-      print(email);
-      print(password);
+      var authResult = await auth.loginEmailPass(email, password);
+      if (authResult == null) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              content: Text("Trouble Logging In"),
+            );
+          },
+        );
+      }
     }
   }
 
-  void onRegisterBtnClick() {
+  void onRegisterBtnClick(context) async {
     if (formKey.currentState.validate()) {
       formKey.currentState.save();
-      print(email);
-      print(password);
+      var authResult = await auth.registerEmailPass(email, password);
+      if (authResult == null) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              content: Text("Trouble Registering"),
+            );
+          },
+        );
+      } else {
+        await auth.loginEmailPass(email, password);
+      }
     }
   }
 
@@ -96,7 +115,7 @@ class LoginPopup extends StatelessWidget {
         txt,
         style: TextStyle(color: Colors.white),
       ),
-      onPressed: () => func,
+      onPressed: func,
     );
   }
 
@@ -131,10 +150,10 @@ class LoginPopup extends StatelessWidget {
                   textAlign: TextAlign.right,
                   style: TextStyle(fontSize: 10),
                 )),
-                horizontalExpansion(
-                    getFormBtn(context, "Login", () => onLoginBtnClick())),
                 horizontalExpansion(getFormBtn(
-                    context, "Register", () => onRegisterBtnClick())),
+                    context, "Login", () => onLoginBtnClick(context))),
+                horizontalExpansion(getFormBtn(
+                    context, "Register", () => onRegisterBtnClick(context))),
                 horizontalExpansion(Divider(
                   color: primary,
                 )),

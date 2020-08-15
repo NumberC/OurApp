@@ -1,42 +1,55 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:our_app/Core/Authentication.dart';
 import 'package:our_app/Core/FirebasDB.dart';
 import 'package:our_app/FrontEnd/Widgets/AppHeader.dart';
 import 'package:transparent_image/transparent_image.dart';
 
-DocumentReference driver = FirebaseDB().getDriverById("UID");
+FirebaseDB firebaseDB = new FirebaseDB();
+Authentication auth = new Authentication();
 
 class UserProfile extends StatefulWidget {
+  UserProfile(this.uid, {this.price});
+  final String uid;
+  final double price;
+
   @override
   State<StatefulWidget> createState() => UserProfileState();
 }
 
 class UserProfileState extends State<UserProfile> {
-  String name = "Loading";
+  DocumentReference user;
+  String name;
   String profilePic;
-  double price = 18.60;
+  double price;
   double averageRating = 2;
-  Column reviewColumn = new Column(children: <Widget>[]);
-  Map<String, dynamic> driverData;
+  bool isDriver;
+  bool isSelf;
 
   @override
   void initState() {
     super.initState();
 
+    user = firebaseDB.getUserById(widget.uid);
+    price = widget.price;
+
     asyncInit();
   }
 
   void asyncInit() async {
-    driverData = await FirebaseDB().getDriverDataByReference(driver);
-    averageRating = await FirebaseDB().getAverageDriverRating(driver);
-    profilePic = await FirebaseDB().getUserProfilePicture("UID");
-    await getReviewContent(
-        Theme.of(context).primaryColor, Theme.of(context).accentColor);
+    name = await firebaseDB.getUserNameByID(widget.uid);
+    isDriver = await firebaseDB.isDriver(user);
+    FirebaseUser loggedInUser = await auth.getUser();
+    if (loggedInUser != null) {
+      isSelf = loggedInUser.uid == widget.uid;
+    }
+    if (isDriver) averageRating = await firebaseDB.getAverageDriverRating(user);
+
     setState(() {
-      name = driverData["Name"];
       averageRating = averageRating;
     });
   }
@@ -45,27 +58,33 @@ class UserProfileState extends State<UserProfile> {
     print("Hired!");
   }
 
-  FlatButton getHireButton(color) {
-    return FlatButton(
-      onPressed: () async => onHireBtnPressed(),
-      child: Container(
-        height: 40,
-        alignment: Alignment.center,
-        child: Text(
-          "Hire",
-          style: TextStyle(
-            color: Colors.white,
+  Widget getHireButton(color) {
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: FlatButton(
+            onPressed: () async => onHireBtnPressed(),
+            child: Container(
+              height: 40,
+              alignment: Alignment.center,
+              child: Text(
+                "Hire",
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(100),
+              ),
+            ),
           ),
         ),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(100),
-        ),
-      ),
+      ],
     );
   }
 
-  Container getProfilePicture(color) {
+  Container getProfilePicture(picURL, color) {
     double radius = 150;
 
     return Container(
@@ -98,18 +117,21 @@ class UserProfileState extends State<UserProfile> {
     );
   }
 
-  Future<void> getReviewContent(primaryColor, accentColor) async {
-    Column newColumn = Column(children: <Widget>[]);
-    await FirebaseDB()
-        .getDriverReviews(driver)
-        .then((value) => value.documents.forEach((element) {
-              print(element.data);
-              newColumn.children.add(getReview(element.data["Review"],
-                  element.data["Rating"] * 1.0, primaryColor, accentColor));
-            }));
-    setState(() {
-      reviewColumn = newColumn;
-    });
+  Widget getReviewContent(reviews, primaryColor, accentColor) {
+    if (reviews.length > 0) {
+      return ListView.builder(
+        scrollDirection: Axis.vertical,
+        shrinkWrap: true,
+        itemCount: reviews.length,
+        itemBuilder: (context, index) {
+          Map<String, dynamic> review = reviews[index].data;
+          return getReview(review["Review"], review["Rating"] * 1.0,
+              primaryColor, accentColor);
+        },
+      );
+    } else {
+      return Text("None");
+    }
   }
 
   Container getReview(reviewText, rating, primaryColor, accentColor) {
@@ -126,7 +148,10 @@ class UserProfileState extends State<UserProfile> {
           Column(
             children: <Widget>[
               getStarRating(rating, Colors.white, Colors.grey, 20.0),
-              Text(reviewText),
+              Text(
+                reviewText,
+                textAlign: TextAlign.left,
+              ),
             ],
           )
         ],
@@ -160,33 +185,60 @@ class UserProfileState extends State<UserProfile> {
                   Icons.arrow_left,
                   color: primaryColor,
                 ),
-                getProfilePicture(primaryColor),
+                FutureBuilder(
+                  future: firebaseDB.getUserProfilePicture(widget.uid),
+                  builder:
+                      (BuildContext context, AsyncSnapshot<String> snapshot) {
+                    profilePic = snapshot.data;
+                    return getProfilePicture(profilePic, primaryColor);
+                  },
+                ),
                 Icon(
                   Icons.arrow_right,
                   color: primaryColor,
                 ),
               ],
             ),
-            getStarRating(averageRating, primaryColor, accentColor, 40.0),
+            if (isDriver)
+              getStarRating(averageRating, primaryColor, accentColor, 40.0),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
                 Text(name),
-                Text("\$$price"),
+                if (price != null) Text("\$$price"),
               ],
             ),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text("Reviews:"),
-            ),
-            reviewColumn,
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: getHireButton(primaryColor),
-                ),
-              ],
-            ),
+            if (isSelf)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text("Reviews Given:"),
+              ),
+            if (isSelf)
+              FutureBuilder(
+                future: firebaseDB.getUserRatings(user),
+                builder: (BuildContext context,
+                    AsyncSnapshot<QuerySnapshot> snapshot) {
+                  List<DocumentSnapshot> reviews =
+                      snapshot.data.documents.toList();
+                  return getReviewContent(reviews, primaryColor, accentColor);
+                },
+              ),
+            if (isDriver)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text("Reviews Received:"),
+              ),
+            if (isDriver)
+              FutureBuilder(
+                future: firebaseDB.getDriverReviews(user),
+                builder: (BuildContext context,
+                    AsyncSnapshot<QuerySnapshot> snapshot) {
+                  List<DocumentSnapshot> reviews =
+                      snapshot.data.documents.toList();
+                  return getReviewContent(reviews, primaryColor, accentColor);
+                },
+              ),
+            if (!isSelf && isDriver) getHireButton(primaryColor),
           ],
         ),
       ),

@@ -1,5 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:our_app/Core/Authentication.dart';
 import 'package:our_app/FrontEnd/Pages/HomePage.dart';
 import 'package:our_app/FrontEnd/Pages/UserProfile.dart';
 import 'package:our_app/FrontEnd/Widgets/LoginPopup.dart';
@@ -7,6 +9,24 @@ import 'package:our_app/main.dart';
 
 class AppHeader extends StatelessWidget {
   final String title = "OurApp";
+  Authentication auth = Authentication();
+
+  Future<void> goToProfile(context) async {
+    //await auth.logOut();
+    if (await auth.isUserLoggedIn()) {
+      FirebaseUser user = await auth.getUser();
+      Navigator.pushNamed(
+        context,
+        "/Profile",
+        arguments: user.uid,
+      );
+    } else {
+      showDialog(
+        context: context,
+        builder: (context) => LoginPopup().build(context),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,10 +43,7 @@ class AppHeader extends StatelessWidget {
           Icons.home,
           color: primaryColor,
         ),
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => HomePage()),
-        ),
+        onPressed: () => Navigator.pushNamed(context, "/"),
       ),
       actions: [
         FlatButton(
@@ -34,16 +51,7 @@ class AppHeader extends StatelessWidget {
             Icons.person,
             color: primaryColor,
           ),
-          onPressed: () => {
-            showDialog(
-              context: context,
-              builder: (context) => LoginPopup().build(context),
-            ),
-            /*Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => UserProfile()), //UserProfile()
-            ), */
-          },
+          onPressed: () async => await goToProfile(context),
         ),
       ],
       backgroundColor: Color.fromRGBO(255, 255, 255, 1.0),

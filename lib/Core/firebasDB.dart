@@ -1,7 +1,9 @@
 import 'dart:ffi';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:our_app/FrontEnd/Pages/UserProfile.dart';
 
 class FirebaseDB {
   final Firestore firestoreInstance = Firestore.instance;
@@ -9,6 +11,21 @@ class FirebaseDB {
 
   Firestore getInstance() {
     return firestoreInstance;
+  }
+
+  void addNewUserInfo(FirebaseUser user) async {
+    if (user == null) return;
+    var basicData = {
+      "Location": null,
+      "Name": (user.displayName == null)
+          ? user.email.split("@")[0]
+          : user.displayName,
+      "isDriver": false,
+      "Payment": null,
+    };
+    DocumentReference userDoc =
+        firestoreInstance.collection("Users").document(user.uid);
+    await userDoc.setData(basicData);
   }
 
   Future<List<DocumentReference>> getNearByDrivers(country, state, town) async {
@@ -53,6 +70,13 @@ class FirebaseDB {
   }
 
   //Update User Info
+
+  Future<bool> isDriver(DocumentReference user) async {
+    bool isDriver = false;
+    await user.get().then((value) => isDriver = value.data["isDriver"]);
+    return isDriver;
+  }
+
   Future<void> createReview(DocumentReference userReviewing,
       DocumentReference reviewedDriver, String message, double rating) async {
     Map<String, dynamic> reviewData = {
@@ -76,6 +100,16 @@ class FirebaseDB {
   }
 
   //Get User Info
+
+  Future<String> getUserNameByID(String uid) async {
+    return await getUserName(getUserById(uid));
+  }
+
+  Future<String> getUserName(DocumentReference user) async {
+    String name = "N/A";
+    await user.get().then((value) => name = value.data["Name"]);
+    return name;
+  }
 
   Future<QuerySnapshot> getUserRatings(DocumentReference user) async {
     return await user.collection("RatingsGiven").getDocuments();

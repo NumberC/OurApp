@@ -1,36 +1,46 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:our_app/Core/FirebasDB.dart';
 
 class Authentication {
   FirebaseAuth firebaseInstance = FirebaseAuth.instance;
+  FirebaseDB firebaseDB = new FirebaseDB();
 
   Future<bool> isUserLoggedIn() async {
     return await firebaseInstance.currentUser() != null;
   }
 
-  void registerEmailPass(email, pass) async {
+  Future<AuthResult> registerEmailPass(email, pass) async {
     try {
-      await firebaseInstance.createUserWithEmailAndPassword(
-          email: email, password: pass);
+      AuthResult authResult = await firebaseInstance
+          .createUserWithEmailAndPassword(email: email, password: pass);
+      firebaseDB.addNewUserInfo(await getUser());
+      return authResult;
     } catch (e) {
       print(e);
+      return null;
     }
   }
 
-  void loginEmailPass(email, pass) async {
+  Future<AuthResult> loginEmailPass(email, pass) async {
     try {
-      await firebaseInstance.signInWithEmailAndPassword(
+      return await firebaseInstance.signInWithEmailAndPassword(
           email: email, password: pass);
     } catch (e) {
       print(e);
+      return null;
     }
   }
 
-  void resetPassword(email) async {
+  Future<void> resetPassword(email) async {
     try {
       await firebaseInstance.sendPasswordResetEmail(email: email);
     } catch (e) {
       print(e);
     }
+  }
+
+  Future<void> logOut() async {
+    await firebaseInstance.signOut();
   }
 
   Future<FirebaseUser> getUser() async {
