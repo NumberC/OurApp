@@ -28,7 +28,7 @@ class UserProfileState extends State<UserProfile> {
   double price;
   double averageRating = 2;
   bool isDriver;
-  bool isSelf;
+  bool isSelf = false;
 
   @override
   void initState() {
