@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:our_app/FrontEnd/Pages/HomePage.dart';
+import 'package:our_app/FrontEnd/Pages/TestSearch.dart';
 import 'package:our_app/FrontEnd/Pages/UserProfile.dart';
 
 void main() {
@@ -33,6 +34,10 @@ class MyApp extends StatelessWidget {
           case '/Profile':
             return MaterialPageRoute(
               builder: (context) => UserProfile(args),
+            );
+          case '/Test':
+            return MaterialPageRoute(
+              builder: (context) => TestSearch(),
             );
           default:
             return null;

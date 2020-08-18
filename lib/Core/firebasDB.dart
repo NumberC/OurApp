@@ -3,11 +3,15 @@ import 'dart:ffi';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:geocoder/geocoder.dart';
+import 'package:location/location.dart';
+import 'package:our_app/Core/LocationLogic.dart';
 import 'package:our_app/FrontEnd/Pages/UserProfile.dart';
 
 class FirebaseDB {
   final Firestore firestoreInstance = Firestore.instance;
   final FirebaseStorage fireStorageInstance = FirebaseStorage.instance;
+  LocationLogic locationLogic = new LocationLogic();
 
   Firestore getInstance() {
     return firestoreInstance;
@@ -28,7 +32,12 @@ class FirebaseDB {
     await userDoc.setData(basicData);
   }
 
-  Future<List<DocumentReference>> getNearByDrivers(country, state, town) async {
+  Future<List<DocumentReference>> getNearByDrivers() async {
+    List<String> allData = await locationLogic.getAllInfo();
+    String country = allData[0];
+    String state = allData[1];
+    String town = allData[2];
+
     List<DocumentReference> nearbyDrivers = List<DocumentReference>();
 
     CollectionReference countryCollection =
@@ -42,6 +51,37 @@ class FirebaseDB {
       });
     });
     return nearbyDrivers;
+  }
+
+  Future<void> addNearByDriver(DocumentReference driver) async {
+    LocationData location = await locationLogic.getLocation();
+    GeoPoint driverLoc = GeoPoint(location.latitude, location.longitude);
+    List<String> allData = await locationLogic.getAllInfo();
+    String country = allData[0];
+    String state = allData[1];
+    String town = allData[2];
+    CollectionReference countryCollection =
+        firestoreInstance.collection("Z- $country");
+    CollectionReference localArea =
+        countryCollection.document(state).collection(town);
+
+    Map<String, dynamic> data = {
+      "Location": driverLoc,
+      "Reference": driver,
+    };
+    await localArea.document(driver.documentID).setData(data);
+  }
+
+  Future<void> removeNearByDriver(DocumentReference driver) async {
+    List<String> allData = await locationLogic.getAllInfo();
+    String country = allData[0];
+    String state = allData[1];
+    String town = allData[2];
+    CollectionReference countryCollection =
+        firestoreInstance.collection("Z- $country");
+    CollectionReference localArea =
+        countryCollection.document(state).collection(town);
+    await localArea.document(driver.documentID).delete();
   }
 
   Future<double> getAverageDriverRating(DocumentReference driver) async {

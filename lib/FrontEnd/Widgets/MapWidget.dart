@@ -12,11 +12,11 @@ class MapWidget extends StatefulWidget {
 }
 
 class MapState extends State<MapWidget> {
-  GoogleMapController mapController;
   Location location;
   LocationData currentLocation;
   LocationData destinationLocation;
 
+  GoogleMapController mapController;
   String googleAPI = "AIzaSyADIuHSXXBc0aASdEMPhoStyU5BaBaaKvk";
   List<LatLng> polylineCoordinates = [];
   Set<Polyline> polylines = {};
@@ -44,18 +44,18 @@ class MapState extends State<MapWidget> {
       "longitude": -74.662743,
     });
 
-    location.onLocationChanged.listen((LocationData currentLocation) {
+    location.onLocationChanged.listen((LocationData currentLocation) async {
       if (mapController != null) {
-        /*mapController.animateCamera(CameraUpdate.newLatLng(
-            LatLng(currentLocation.latitude, currentLocation.longitude)));*/
+        currentLocation = await location.getLocation();
+        mapController.animateCamera(CameraUpdate.newLatLng(
+            LatLng(currentLocation.latitude, currentLocation.longitude)));
       }
     });
-    print(currentLocation);
-    getAddress(40.215748, -74.662743); //40.215748, -74.662743 //TODO: add await
-    await _getPolyline();
+    await getAddress(currentLocation.latitude, currentLocation.longitude);
+    //await _getPolyline();
   }
 
-  void getAddress(lat, lng) async {
+  Future<void> getAddress(lat, lng) async {
     var addresses = await Geocoder.local
         .findAddressesFromCoordinates(Coordinates(lat, lng));
     var first = addresses.first;
@@ -103,7 +103,7 @@ class MapState extends State<MapWidget> {
         googleMap = GoogleMap(
           onMapCreated: (GoogleMapController controller) {
             mapController = controller;
-            _getPolyline();
+            //_getPolyline();
           },
           initialCameraPosition: CameraPosition(
             target: LatLng(currentLocation.latitude, currentLocation.longitude),
