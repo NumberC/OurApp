@@ -36,7 +36,14 @@ class LoginPopup extends StatelessWidget {
     return null;
   }
 
-  void onLoginBtnClick(context) async {
+  Future<void> onForgotPasswordBtnClick() async {
+    formKey.currentState.save();
+    if (emailVerification(email) == null) {
+      await auth.resetPassword(email);
+    }
+  }
+
+  Future<void> onLoginBtnClick(context) async {
     if (formKey.currentState.validate()) {
       formKey.currentState.save();
       var authResult = await auth.loginEmailPass(email, password);
@@ -53,7 +60,7 @@ class LoginPopup extends StatelessWidget {
     }
   }
 
-  void onRegisterBtnClick(context) async {
+  Future<void> onRegisterBtnClick(context) async {
     if (formKey.currentState.validate()) {
       formKey.currentState.save();
       var authResult = await auth.registerEmailPass(email, password);
@@ -145,11 +152,16 @@ class LoginPopup extends StatelessWidget {
                     (s) => emailVerification(s)),
                 getFormText(primary, "Password", Icons.lock, true, false,
                     (s) => passwordVerification(s)),
-                horizontalExpansion(Text(
-                  "Forgot Password?",
-                  textAlign: TextAlign.right,
-                  style: TextStyle(fontSize: 10),
-                )),
+                horizontalExpansion(
+                  FlatButton(
+                    onPressed: () async => await onForgotPasswordBtnClick(),
+                    child: Text(
+                      "Forgot Password?",
+                      textAlign: TextAlign.right,
+                      style: TextStyle(fontSize: 10, color: primary),
+                    ),
+                  ),
+                ),
                 horizontalExpansion(getFormBtn(
                     context, "Login", () => onLoginBtnClick(context))),
                 horizontalExpansion(getFormBtn(

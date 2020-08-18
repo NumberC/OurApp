@@ -87,17 +87,18 @@ class UserProfileState extends State<UserProfile> {
   Container getProfilePicture(picURL, color) {
     double radius = 150;
 
+    DecorationImage decImg = null;
+    if (picURL != null) {
+      decImg = DecorationImage(image: NetworkImage(picURL), fit: BoxFit.fill);
+    }
+
     return Container(
       width: radius,
       height: radius,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: color,
-        image: DecorationImage(
-            image: NetworkImage((profilePic != null)
-                ? profilePic
-                : kTransparentImage.toString()),
-            fit: BoxFit.fill),
+        image: decImg,
       ),
     );
   }
@@ -178,6 +179,20 @@ class UserProfileState extends State<UserProfile> {
         padding: EdgeInsets.fromLTRB(20, 0, 20, 0),
         child: Column(
           children: <Widget>[
+            if (isSelf)
+              Row(
+                children: [
+                  Expanded(
+                    child: FlatButton(
+                      onPressed: () async => await auth.logOut(),
+                      child: Text(
+                        "Sign Out",
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[

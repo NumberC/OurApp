@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:our_app/FrontEnd/Pages/HomePage.dart';
-import 'package:our_app/FrontEnd/Pages/TestSearch.dart';
-import 'package:our_app/FrontEnd/Pages/UserProfile.dart';
+import 'package:our_app/Routes.dart';
 
 void main() {
   runApp(MyApp());
@@ -23,26 +21,8 @@ class MyApp extends StatelessWidget {
                 displayColor: Color.fromRGBO(42, 150, 222, 1.0),
               ),
           backgroundColor: Colors.white),
-      initialRoute: "/",
-      onGenerateRoute: (settings) {
-        var args = settings.arguments;
-        switch (settings.name) {
-          case "/":
-            return MaterialPageRoute(
-              builder: (context) => HomePage(),
-            );
-          case '/Profile':
-            return MaterialPageRoute(
-              builder: (context) => UserProfile(args),
-            );
-          case '/Test':
-            return MaterialPageRoute(
-              builder: (context) => TestSearch(),
-            );
-          default:
-            return null;
-        }
-      },
+      initialRoute: Routes.homeRoute,
+      onGenerateRoute: (settings) => Routes.generateRoute(settings),
       //home: HomePage(),
     );
   }

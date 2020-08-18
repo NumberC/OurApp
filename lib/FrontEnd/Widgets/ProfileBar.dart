@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:our_app/Core/FirebasDB.dart';
 import 'package:our_app/FrontEnd/Pages/UserProfile.dart';
+import 'package:our_app/Routes.dart';
 
 class ProfileBar extends StatelessWidget {
   ProfileBar({this.uid, this.price});
@@ -32,7 +33,7 @@ class ProfileBar extends StatelessWidget {
         Expanded(
           child: GestureDetector(
             onTap: () => {
-              Navigator.pushNamed(context, "/Profile", arguments: uid),
+              Navigator.pushNamed(context, Routes.profileRoute, arguments: uid),
             },
             child: Container(
               height: 50,

@@ -39,4 +39,8 @@ class LocationLogic {
     String town = getTown(myAddress);
     return [country, state, town];
   }
+
+  double getDistanceBetween() {
+    return null;
+  }
 }

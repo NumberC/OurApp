@@ -5,6 +5,7 @@ import 'package:our_app/Core/Authentication.dart';
 import 'package:our_app/FrontEnd/Pages/HomePage.dart';
 import 'package:our_app/FrontEnd/Pages/UserProfile.dart';
 import 'package:our_app/FrontEnd/Widgets/LoginPopup.dart';
+import 'package:our_app/Routes.dart';
 import 'package:our_app/main.dart';
 
 class AppHeader extends StatelessWidget {
@@ -17,7 +18,7 @@ class AppHeader extends StatelessWidget {
       FirebaseUser user = await auth.getUser();
       Navigator.pushNamed(
         context,
-        "/Profile",
+        Routes.profileRoute,
         arguments: user.uid,
       );
     } else {
@@ -43,7 +44,7 @@ class AppHeader extends StatelessWidget {
           Icons.home,
           color: primaryColor,
         ),
-        onPressed: () => Navigator.pushNamed(context, "/"),
+        onPressed: () => Navigator.pushNamed(context, Routes.homeRoute),
       ),
       actions: [
         FlatButton(
