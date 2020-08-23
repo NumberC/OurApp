@@ -166,6 +166,68 @@ class UserProfileState extends State<UserProfile> {
     );
   }
 
+  Widget creditCardView(type, last4Digits) {
+    Color primary = Theme.of(context).primaryColor;
+    double iconSize = 15;
+
+    return Row(
+      children: [
+        Icon(
+          Icons.credit_card,
+          color: primary,
+        ),
+        Text("$type Ending In $last4Digits"),
+        Icon(
+          Icons.edit,
+          size: iconSize,
+          color: primary,
+        ),
+      ],
+    );
+  }
+
+  Widget getPayment() {
+    Text title = Text("Payment:");
+    double leftIndent = 30;
+    double verticalPadding = 5;
+    Color primary = Theme.of(context).primaryColor;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(0, verticalPadding, 0, verticalPadding),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              title,
+              GestureDetector(
+                onTap: () {
+                  print("It worked");
+                },
+                child: Icon(
+                  Icons.add,
+                  color: primary,
+                ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+                leftIndent, verticalPadding, 0, verticalPadding),
+            child: ListView.builder(
+              scrollDirection: Axis.vertical,
+              shrinkWrap: true,
+              itemCount: 2,
+              itemBuilder: (context, i) {
+                return creditCardView("Visa", "4523");
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     Color primaryColor = Theme.of(context).primaryColor;
@@ -220,9 +282,10 @@ class UserProfileState extends State<UserProfile> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
                 Text(name),
-                if (price != null) Text("\$$price"),
+                if (price != null) Text("\$${price.toStringAsFixed(2)}"),
               ],
             ),
+            if (isSelf) getPayment(),
             if (isSelf)
               Align(
                 alignment: Alignment.centerLeft,

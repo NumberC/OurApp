@@ -139,7 +139,22 @@ class FirebaseDB {
     await user.updateData({"Location": loc});
   }
 
+  Future<void> updateUserLocation(DocumentReference userRef,
+      [GeoPoint loc]) async {
+    if (loc == null) {
+      LocationData locData = await LocationLogic().getLocation();
+      loc = new GeoPoint(locData.latitude, locData.longitude);
+    }
+    await userRef.updateData({"Location": loc});
+  }
+
   //Get User Info
+
+  Future<GeoPoint> getUserLocation(DocumentReference userRef) async {
+    GeoPoint userLoc;
+    await userRef.get().then((value) => userLoc = value.data["Location"]);
+    return userLoc;
+  }
 
   Future<String> getUserNameByID(String uid) async {
     return await getUserName(getUserById(uid));

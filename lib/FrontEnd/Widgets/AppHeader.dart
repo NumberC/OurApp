@@ -6,6 +6,7 @@ import 'package:our_app/FrontEnd/Pages/HomePage.dart';
 import 'package:our_app/FrontEnd/Pages/UserProfile.dart';
 import 'package:our_app/FrontEnd/Widgets/LoginPopup.dart';
 import 'package:our_app/Routes.dart';
+import 'package:our_app/UserProfileArgs.dart';
 import 'package:our_app/main.dart';
 
 class AppHeader extends StatelessWidget {
@@ -19,7 +20,7 @@ class AppHeader extends StatelessWidget {
       Navigator.pushNamed(
         context,
         Routes.profileRoute,
-        arguments: user.uid,
+        arguments: UserProfileArgs(user.uid),
       );
     } else {
       showDialog(

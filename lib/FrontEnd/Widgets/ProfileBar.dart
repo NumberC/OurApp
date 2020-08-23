@@ -2,8 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:our_app/Core/FirebasDB.dart';
-import 'package:our_app/FrontEnd/Pages/UserProfile.dart';
 import 'package:our_app/Routes.dart';
+import 'package:our_app/UserProfileArgs.dart';
 
 class ProfileBar extends StatelessWidget {
   ProfileBar({this.uid, this.price});
@@ -33,7 +33,8 @@ class ProfileBar extends StatelessWidget {
         Expanded(
           child: GestureDetector(
             onTap: () => {
-              Navigator.pushNamed(context, Routes.profileRoute, arguments: uid),
+              Navigator.pushNamed(context, Routes.profileRoute,
+                  arguments: UserProfileArgs(uid, price: price)),
             },
             child: Container(
               height: 50,
@@ -85,7 +86,7 @@ class ProfileBar extends StatelessWidget {
                       ),
                     ],
                   ),
-                  Text("\$$price"),
+                  Text("\$${price.toStringAsFixed(2)}"),
                 ],
               ),
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:our_app/UserProfileArgs.dart';
 
 import 'FrontEnd/Pages/HomePage.dart';
 import 'FrontEnd/Pages/TestSearch.dart';
@@ -15,7 +16,10 @@ class Routes {
       case homeRoute:
         return MaterialPageRoute(builder: (context) => HomePage());
       case profileRoute:
-        return MaterialPageRoute(builder: (context) => UserProfile(args));
+        return MaterialPageRoute(builder: (context) {
+          UserProfileArgs userArgs = args;
+          return UserProfile(userArgs.uid, price: userArgs.price);
+        });
       case testRoute:
         return MaterialPageRoute(builder: (context) => TestSearch());
       default:

@@ -1,10 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geocoder/geocoder.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
-import 'package:our_app/Core/FirebasDB.dart';
 
 class MapWidget extends StatefulWidget {
   @override
@@ -17,7 +17,7 @@ class MapState extends State<MapWidget> {
   LocationData destinationLocation;
 
   GoogleMapController mapController;
-  String googleAPI = "AIzaSyADIuHSXXBc0aASdEMPhoStyU5BaBaaKvk";
+  String googleAPI = DotEnv().env["googleAPI"];
   List<LatLng> polylineCoordinates = [];
   Set<Polyline> polylines = {};
   PolylinePoints polylinePoints = PolylinePoints();
