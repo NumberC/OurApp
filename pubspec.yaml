@@ -36,6 +36,7 @@ dependencies:
   location: ^3.0.0
   flutter_polyline_points: ^0.2.2
 
+  http: ^0.12.2
   flutter_dotenv: ^2.1.0
   flutter_rating_bar: ^3.0.1+1
   transparent_image: ^1.0.0

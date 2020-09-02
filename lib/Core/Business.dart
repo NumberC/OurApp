@@ -1,38 +1,98 @@
+import 'dart:convert';
+import 'dart:math' as Math;
+import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:stripe_payment/stripe_payment.dart';
 
 class Business {
-  bool isProduction = false;
+  static const baseURL = "https://ourapp2.herokuapp.com";
+  static const String makeAccountURL = "$baseURL/makeUserDriver";
+  static const String makeCustomerURL = "$baseURL/makeCustomer";
+  static const String addPaymentMethodURL = "$baseURL/addPaymentMethod";
+  static const String getPaymentMethodsURL = "$baseURL/paymentMethods";
+  static const String getPaymentIntentURL = "$baseURL/paymentIntent";
 
-  String publishable = DotEnv().env["stripePublishable"];
-  String secret = DotEnv().env["stripeSecret"];
+  static String publishable = DotEnv().env["stripePublishable"].toString();
 
-  double pricePerKilometer = 4;
-  double minimumPrice = 5;
+  static const double pricePerKilometer = 4;
+  static const double minimumPrice = 5;
 
-  void init() {
+  static void init() {
     StripePayment.setOptions(StripeOptions(
       publishableKey: publishable,
-      androidPayMode: isProduction ? "production" : "test",
+      merchantId: "Test",
+      androidPayMode: "test",
     ));
-    StripePayment.setStripeAccount("stripeAccount");
   }
 
-  double getPrice(double meters) {
+  static double getPrice(double meters) {
     double normalPrice = pricePerKilometer * meters / 1000;
-    return (normalPrice > minimumPrice) ? normalPrice : minimumPrice;
+    return Math.max(normalPrice, minimumPrice);
   }
 
-  void createPaymentMethod(card) async {
-    StripePayment.createPaymentMethod(
-      PaymentMethodRequest(
-        card: card,
-      ),
-    ).then((paymentMethod) {
-      print(paymentMethod);
-      //_scaffoldKey.currentState.showSnackBar(SnackBar(content: Text('Received ${paymentMethod.id}')));
-    }).catchError((error) {
-      print(error);
+  static Future<Map<String, dynamic>> makeUserDriver(String email) async {
+    var res = await http.post(makeAccountURL, body: {
+      'email': email,
     });
+    return jsonDecode(res.body);
+  }
+
+  static Future<Map<String, dynamic>> makeCustomer(String email) async {
+    var res = await http.post(makeCustomerURL, body: {
+      'email': email,
+    });
+    return jsonDecode(res.body);
+  }
+
+  static Future<void> addPaymentMethod(id, card) async {
+    var response = await http.post(
+      addPaymentMethodURL,
+      body: json.encode(
+        {
+          'CustomerID': id,
+          'PaymentMethod': card,
+        },
+      ),
+    );
+    print('Response status: ${response.statusCode}');
+    print('Response body: ${response.body}');
+    return;
+  }
+
+  static Future<Map<String, dynamic>> getPaymentMethods(id) async {
+    print("ALOGA");
+    print(id);
+    var res = await http.post(
+      getPaymentMethodsURL,
+      body: {
+        'CustomerID': id,
+      },
+    );
+    print(res.body);
+    return Map<String, dynamic>.from(jsonDecode(res.body));
+  }
+
+  static Future<String> getPaymentIntent(driverID, kilometerDistance) async {
+    var res = await http.post(
+      getPaymentIntentURL,
+      body: {
+        'DriverID': driverID,
+        'Distance': kilometerDistance,
+      },
+    );
+    print('Response status: ${res.statusCode}');
+    print('Response body: ${res.body}');
+    return jsonDecode(res.body);
+  }
+
+  static Future<PaymentIntentResult> confirmPayment(
+      clientSecret, paymentMethod) async {
+    //paymentMethod or paymentMethodID
+    return await StripePayment.confirmPaymentIntent(
+      PaymentIntent(
+        clientSecret: clientSecret,
+        paymentMethod: paymentMethod,
+      ),
+    );
   }
 }

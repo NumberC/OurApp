@@ -63,7 +63,7 @@ class ProfileBar extends StatelessWidget {
                           ),
                           new FutureBuilder(
                             future: firebaseDB.getAverageDriverRating(
-                                firebaseDB.getDriverById(uid)),
+                                firebaseDB.getUserById(uid)),
                             builder: (BuildContext context,
                                 AsyncSnapshot<double> snapshot) {
                               rating = snapshot.data;

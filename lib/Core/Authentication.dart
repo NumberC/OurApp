@@ -13,12 +13,17 @@ class Authentication {
     try {
       AuthResult authResult = await firebaseInstance
           .createUserWithEmailAndPassword(email: email, password: pass);
-      firebaseDB.addNewUserInfo(await getUser());
+      await firebaseDB.addNewUserInfo(await getUser());
       return authResult;
     } catch (e) {
       print(e);
       return null;
     }
+  }
+
+  Future<void> deleteAccount(FirebaseUser user) async {
+    await firebaseDB.deleteUserInfo(user);
+    await user.delete();
   }
 
   Future<AuthResult> loginEmailPass(email, pass) async {

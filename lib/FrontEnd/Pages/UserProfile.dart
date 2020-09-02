@@ -3,11 +3,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:our_app/Core/Authentication.dart';
+import 'package:our_app/Core/Business.dart';
 import 'package:our_app/Core/FirebasDB.dart';
 import 'package:our_app/FrontEnd/Widgets/AppHeader.dart';
-import 'package:transparent_image/transparent_image.dart';
+import 'package:stripe_payment/stripe_payment.dart';
 
 FirebaseDB firebaseDB = new FirebaseDB();
 Authentication auth = new Authentication();
@@ -22,11 +22,12 @@ class UserProfile extends StatefulWidget {
 }
 
 class UserProfileState extends State<UserProfile> {
+  bool isLoading = true;
   DocumentReference user;
   String name;
   String profilePic;
   double price;
-  double averageRating = 2;
+  double averageRating;
   bool isDriver;
   bool isSelf = false;
 
@@ -37,25 +38,45 @@ class UserProfileState extends State<UserProfile> {
     user = firebaseDB.getUserById(widget.uid);
     price = widget.price;
 
-    asyncInit();
-  }
-
-  void asyncInit() async {
-    name = await firebaseDB.getUserNameByID(widget.uid);
-    isDriver = await firebaseDB.isDriver(user);
-    FirebaseUser loggedInUser = await auth.getUser();
-    if (loggedInUser != null) {
-      isSelf = loggedInUser.uid == widget.uid;
-    }
-    if (isDriver) averageRating = await firebaseDB.getAverageDriverRating(user);
-
-    setState(() {
-      averageRating = averageRating;
+    asyncInit().then((value) {
+      setState(() {
+        isLoading = false;
+      });
     });
   }
 
-  void onHireBtnPressed() async {
+  Future<void> asyncInit() async {
+    name = await firebaseDB.getUserNameByID(widget.uid);
+    isDriver = await firebaseDB.isDriver(user);
+
+    //TODO: get profile pic
+
+    FirebaseUser loggedInUser = await auth.getUser();
+    if (loggedInUser != null) isSelf = loggedInUser.uid == widget.uid;
+    if (isDriver) averageRating = await firebaseDB.getAverageDriverRating(user);
+
+    //TODO: get and display payment correctly
+    String customerID;
+    if (isSelf) {
+      String customerID = await firebaseDB.getCustomerID(user);
+      if (customerID == null) return;
+      Map<String, dynamic> d =
+          await Business.getPaymentMethods(customerID); //customerID
+      print(d["data"]);
+    }
+  }
+
+  Future<void> onHireBtnPressed() async {
+    //TODO: get the async stuff under control to work with info on location
     print("Hired!");
+    FirebaseUser currentUser = await auth.getUser();
+    if (currentUser != null) {
+      DocumentReference userRef = await firebaseDB.getUserById(currentUser.uid);
+      firebaseDB.createNewJourney(
+          userRef, user, GeoPoint(34, 23), GeoPoint(34, 23));
+    } else {
+      print("LOG IN!");
+    }
   }
 
   Widget getHireButton(color) {
@@ -87,10 +108,9 @@ class UserProfileState extends State<UserProfile> {
   Container getProfilePicture(picURL, color) {
     double radius = 150;
 
-    DecorationImage decImg = null;
-    if (picURL != null) {
+    DecorationImage decImg;
+    if (picURL != null)
       decImg = DecorationImage(image: NetworkImage(picURL), fit: BoxFit.fill);
-    }
 
     return Container(
       width: radius,
@@ -126,8 +146,12 @@ class UserProfileState extends State<UserProfile> {
         itemCount: reviews.length,
         itemBuilder: (context, index) {
           Map<String, dynamic> review = reviews[index].data;
-          return getReview(review["Review"], review["Rating"] * 1.0,
-              primaryColor, accentColor);
+          return getReview(
+            review["Review"],
+            review["Rating"] * 1.0,
+            primaryColor,
+            accentColor,
+          );
         },
       );
     } else {
@@ -186,6 +210,14 @@ class UserProfileState extends State<UserProfile> {
     );
   }
 
+  Future<void> addPayment(card) async {
+    if (!isSelf) throw ErrorDescription("Must be self!");
+    if (card == null) throw ErrorDescription("No Card Given");
+
+    String custID = await FirebaseDB().getCustomerID(user);
+    await Business.addPaymentMethod(custID, card);
+  }
+
   Widget getPayment() {
     Text title = Text("Payment:");
     double leftIndent = 30;
@@ -202,7 +234,13 @@ class UserProfileState extends State<UserProfile> {
               title,
               GestureDetector(
                 onTap: () {
-                  print("It worked");
+                  StripePayment.paymentRequestWithCardForm(
+                    CardFormPaymentRequest(),
+                  ).then((value) async {
+                    await addPayment(value);
+                  }).catchError((err) {
+                    print(err);
+                  });
                 },
                 child: Icon(
                   Icons.add,
@@ -235,6 +273,8 @@ class UserProfileState extends State<UserProfile> {
     Color backgroundColor = Theme.of(context).backgroundColor;
     TextTheme textTheme = Theme.of(context).textTheme;
 
+    if (isLoading) return Container();
+
     return Scaffold(
       appBar: AppHeader().build(context),
       body: Padding(
@@ -245,12 +285,12 @@ class UserProfileState extends State<UserProfile> {
               Row(
                 children: [
                   Expanded(
-                    child: FlatButton(
-                      onPressed: () async => await auth.logOut(),
+                    child: GestureDetector(
                       child: Text(
                         "Sign Out",
                         textAlign: TextAlign.right,
                       ),
+                      onTap: () async => await auth.logOut(),
                     ),
                   ),
                 ],
