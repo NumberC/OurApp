@@ -86,6 +86,7 @@ class HomePageState extends State<HomePage> {
           }
         },
       );
+    return Container();
   }
 
   Future<Map<String, dynamic>> getDriversAndPrice() async {
@@ -130,7 +131,8 @@ class HomePageState extends State<HomePage> {
         child: Column(
           children: <Widget>[
             getDriverActivityToggle(),
-            LoadingDriverResponse(user: userRef).getDriverPerspective(),
+            if (isDriver)
+              LoadingDriverResponse(user: userRef).getDriverPerspective(),
             Container(
               height: 0.2 * MediaQuery.of(context).size.height,
               width: MediaQuery.of(context).size.width,
@@ -166,7 +168,9 @@ class HomePageState extends State<HomePage> {
                     return Text("You have no journey");
                   return FlatButton(
                     child: Text("Cancel"),
-                    onPressed: () {},
+                    onPressed: () async {
+                      //await firebaseDB.endOfJourney(journey);
+                    },
                   );
                 },
               ),

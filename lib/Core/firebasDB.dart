@@ -14,6 +14,9 @@ class FirebaseDB {
   final FirebaseStorage fireStorageInstance = FirebaseStorage.instance;
   LocationLogic locationLogic = new LocationLogic();
 
+  //TODO: get a schema for FirebaseDB
+  //TODO: if make a request, and no response, report it and keep a history of it
+
   Firestore getInstance() {
     return firestoreInstance;
   }
