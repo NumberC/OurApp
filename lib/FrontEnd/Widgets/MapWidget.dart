@@ -12,6 +12,8 @@ class MapWidget extends StatefulWidget {
 }
 
 class MapState extends State<MapWidget> {
+  bool isLoading = true;
+
   Location location;
   LocationData currentLocation;
   LocationData destinationLocation;
@@ -34,14 +36,19 @@ class MapState extends State<MapWidget> {
     super.initState();
 
     location = new Location();
-    asyncInit();
+    asyncInit().then(
+      (value) => setState(() {
+        isLoading = false;
+      }),
+    );
   }
 
   Future<void> asyncInit() async {
     currentLocation = await location.getLocation();
+
     destinationLocation = LocationData.fromMap({
-      "latitude": 40.215748,
-      "longitude": -74.662743,
+      "latitude": 40.338204,
+      "longitude": -74.631664,
     });
 
     location.onLocationChanged.listen((LocationData currentLocation) async {
@@ -51,23 +58,10 @@ class MapState extends State<MapWidget> {
             LatLng(currentLocation.latitude, currentLocation.longitude)));
       }
     });
-    await getAddress(currentLocation.latitude, currentLocation.longitude);
-    //await _getPolyline();
+    await _getPolyline();
   }
 
-  Future<void> getAddress(lat, lng) async {
-    var addresses = await Geocoder.local
-        .findAddressesFromCoordinates(Coordinates(lat, lng));
-    var first = addresses.first;
-    print(first.addressLine);
-
-    String country = first.countryCode;
-    String state = first.adminArea;
-    String township = first.locality;
-    print("Z- $country => $state => $township => drivers");
-  }
-
-  _addPolyLine() {
+  void _addPolyLine() {
     Polyline polyline = Polyline(
         polylineId: PolylineId("poly"),
         color: Colors.red,
@@ -75,13 +69,12 @@ class MapState extends State<MapWidget> {
     polylines.add(polyline);
   }
 
-  _getPolyline() async {
+  Future<void> _getPolyline() async {
     result = await polylinePoints.getRouteBetweenCoordinates(
         googleAPI,
-        new PointLatLng(40.343580,
-            -74.651756), // currentLocation.latitude, currentLocation.longitude
-        new PointLatLng(40.338940, -74.653207));
-
+        new PointLatLng(40.338204,
+            -74.631664), // currentLocation.latitude, currentLocation.longitude
+        new PointLatLng(40.331629, -74.637972));
     print("--------");
     print(result);
     print(result.points);
@@ -97,29 +90,26 @@ class MapState extends State<MapWidget> {
   Widget build(BuildContext context) {
     GoogleMap googleMap;
 
-    return FutureBuilder(
-      future: asyncInit(),
-      builder: (context, snapshot) {
-        googleMap = GoogleMap(
-          onMapCreated: (GoogleMapController controller) {
-            mapController = controller;
-            //_getPolyline();
-          },
-          initialCameraPosition: CameraPosition(
-            target: LatLng(currentLocation.latitude, currentLocation.longitude),
-            zoom: 15.0,
-          ),
-          myLocationEnabled: true,
-          myLocationButtonEnabled: true,
-          zoomControlsEnabled: true,
-          zoomGesturesEnabled: true,
-          buildingsEnabled: false,
-          markers: Set<Marker>(),
-          polylines: polylines,
-        );
-        googleMap.markers.add(driver);
-        return googleMap;
+    if (isLoading) return CircularProgressIndicator();
+
+    googleMap = GoogleMap(
+      onMapCreated: (GoogleMapController controller) {
+        mapController = controller;
+        //_getPolyline();
       },
+      initialCameraPosition: CameraPosition(
+        target: LatLng(currentLocation.latitude, currentLocation.longitude),
+        zoom: 15.0,
+      ),
+      myLocationEnabled: true,
+      myLocationButtonEnabled: true,
+      zoomControlsEnabled: false,
+      zoomGesturesEnabled: true,
+      buildingsEnabled: false,
+      markers: Set<Marker>(),
+      polylines: polylines,
     );
+    googleMap.markers.add(driver);
+    return googleMap;
   }
 }

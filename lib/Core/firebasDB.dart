@@ -73,15 +73,18 @@ class FirebaseDB {
     await journey.delete();
   }
 
+  Future<void> acceptOrDeclineJourney(
+      DocumentReference journey, bool isAccepted) async {
+    if (!isAccepted) return await endOfJourney(journey);
+    await journey.updateData({
+      "isPending": !isAccepted,
+      "hasReachedStore": false,
+      "hasReachedDestination": false,
+    });
+  }
+
   Future<DocumentReference> getJourney(DocumentReference user) async {
     DocumentSnapshot userData = await user.get();
-    user.snapshots().listen((event) {
-      if (event.data["Journey"] == "Pending") {
-        //do something
-      } else if (event.data["Journey"] == "Accepted") {
-        //do something
-      }
-    });
     return userData.data["Journey"];
   }
 

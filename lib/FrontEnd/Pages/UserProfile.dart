@@ -7,6 +7,7 @@ import 'package:our_app/Core/Authentication.dart';
 import 'package:our_app/Core/Business.dart';
 import 'package:our_app/Core/FirebasDB.dart';
 import 'package:our_app/FrontEnd/Widgets/AppHeader.dart';
+import 'package:our_app/FrontEnd/Widgets/LoadingDriverResponse.dart';
 import 'package:stripe_payment/stripe_payment.dart';
 
 FirebaseDB firebaseDB = new FirebaseDB();
@@ -71,9 +72,13 @@ class UserProfileState extends State<UserProfile> {
     print("Hired!");
     FirebaseUser currentUser = await auth.getUser();
     if (currentUser != null) {
-      DocumentReference userRef = await firebaseDB.getUserById(currentUser.uid);
-      firebaseDB.createNewJourney(
+      DocumentReference userRef = firebaseDB.getUserById(currentUser.uid);
+      await firebaseDB.createNewJourney(
           userRef, user, GeoPoint(34, 23), GeoPoint(34, 23));
+      showDialog(
+        context: context,
+        builder: (context) => LoadingDriverResponse(user: user).build(context),
+      );
     } else {
       print("LOG IN!");
     }
