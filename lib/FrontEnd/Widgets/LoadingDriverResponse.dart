@@ -1,13 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:our_app/Core/FirebasDB.dart';
+import 'package:our_app/Core/FirebaseDB.dart';
 import 'package:our_app/Routes.dart';
 
 class LoadingDriverResponse extends StatelessWidget {
   LoadingDriverResponse({this.user});
   DocumentReference user;
-  FirebaseDB firebaseDB = new FirebaseDB();
 
   Widget getDriverRequest() {
     return Container(
@@ -18,14 +17,14 @@ class LoadingDriverResponse extends StatelessWidget {
             children: [
               FlatButton(
                   onPressed: () async {
-                    await firebaseDB.acceptOrDeclineJourney(
-                        await firebaseDB.getJourney(user), false);
+                    await FirebaseDB.acceptOrDeclineJourney(
+                        await FirebaseDB.getJourney(user), false);
                   },
                   child: Text("No")),
               FlatButton(
                   onPressed: () async {
-                    await firebaseDB.acceptOrDeclineJourney(
-                        await firebaseDB.getJourney(user), true);
+                    await FirebaseDB.acceptOrDeclineJourney(
+                        await FirebaseDB.getJourney(user), true);
                   },
                   child: Text("Yes")),
             ],
@@ -66,7 +65,7 @@ class LoadingDriverResponse extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       content: FutureBuilder(
-        future: firebaseDB.getJourney(user),
+        future: FirebaseDB.getJourney(user),
         builder: (context, AsyncSnapshot<DocumentReference> journey) {
           if (!journey.hasData) return Container();
           return StreamBuilder<DocumentSnapshot>(

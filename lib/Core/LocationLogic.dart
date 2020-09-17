@@ -2,60 +2,72 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geocoder/geocoder.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:location/location.dart';
-import 'package:our_app/Core/FirebasDB.dart';
 
 class LocationLogic {
+  //Everything is in KILOMETERS
+
+  static final double nearRadius = 0.3;
   Location location = new Location();
   LocationData myLocation;
   Address myAddress;
+  Future doneInitializingLocations;
 
-  Future<LocationData> getLocation() async {
+  // When instantiating this object, await initializationDone before working with the object
+  LocationLogic() {
+    doneInitializingLocations = initializeLocations();
+  }
+
+  Future get initializationDone => doneInitializingLocations;
+
+  Future<void> initializeLocations() async {
+    GeolocationStatus locationPermission =
+        await Geolocator().checkGeolocationPermissionStatus();
+    if (locationPermission != GeolocationStatus.granted) return;
+
     myLocation = await location.getLocation();
     location.onLocationChanged.listen((event) {
       myLocation = event;
       //FirebaseDB().updateUserLocation(userRef);
     });
+  }
+
+  LocationData getLocation() {
     return myLocation;
   }
 
-  Future<Address> getAddress(latitude, longitude) async {
+  Future<Address> getMyAddress() async {
+    if (myLocation == null) return null;
+    return await getAddress(myLocation.latitude, myLocation.longitude);
+  }
+
+  static Future<Address> getAddress(latitude, longitude) async {
     if (latitude == null || longitude == null) return null;
     List<Address> addresses = await Geocoder.local
         .findAddressesFromCoordinates(Coordinates(latitude, longitude));
-    myAddress = addresses.first;
-    return myAddress;
+    return addresses.first;
   }
 
-  String getCountryCode(Address address) {
+  static String getCountryCode(Address address) {
     return address != null ? address.countryCode : null;
   }
 
-  String getState(Address address) {
+  static String getState(Address address) {
     return address != null ? address.adminArea : null;
   }
 
-  String getTown(Address address) {
+  static String getTown(Address address) {
     return address != null ? address.locality : null;
   }
 
-  Future<List<String>> getAllInfo() async {
-    await getLocation();
-    await getAddress(myLocation.latitude, myLocation.longitude);
-    String country = getCountryCode(myAddress);
-    String state = getState(myAddress);
-    String town = getTown(myAddress);
-    return [country, state, town];
-  }
-
   //TODO: actual route instead of geography
-  Future<double> getDistanceBetween(
+  static Future<double> getDistanceBetween(
       LocationData loc1, LocationData loc2) async {
     return await Geolocator().distanceBetween(
         loc1.latitude, loc1.longitude, loc2.latitude, loc2.longitude);
   }
 
-  Future<double> getDistanceBetweenGeo(GeoPoint loc1, GeoPoint loc2) async {
-    return await Geolocator().distanceBetween(
-        loc1.latitude, loc1.longitude, loc2.latitude, loc2.longitude);
+  static Future<bool> isAtLocation(LocationData loc1, LocationData loc2) async {
+    double distance = await getDistanceBetween(loc1, loc2);
+    return distance <= nearRadius;
   }
 }

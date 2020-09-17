@@ -1,14 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:our_app/Core/FirebasDB.dart';
+import 'package:our_app/Core/FirebaseDB.dart';
 import 'package:our_app/Routes.dart';
 import 'package:our_app/UserProfileArgs.dart';
 
 class ProfileBar extends StatelessWidget {
   ProfileBar({this.uid, this.price});
 
-  FirebaseDB firebaseDB = new FirebaseDB();
   final String uid;
   final double price;
   String name;
@@ -54,7 +53,7 @@ class ProfileBar extends StatelessWidget {
                         children: [
                           Padding(padding: EdgeInsets.all(3)),
                           new FutureBuilder(
-                            future: firebaseDB.getUserNameByID(this.uid),
+                            future: FirebaseDB.getUserNameByID(this.uid),
                             builder: (BuildContext context,
                                 AsyncSnapshot<String> snapshot) {
                               name = snapshot.data;
@@ -62,8 +61,8 @@ class ProfileBar extends StatelessWidget {
                             },
                           ),
                           new FutureBuilder(
-                            future: firebaseDB.getAverageDriverRating(
-                                firebaseDB.getUserById(uid)),
+                            future: FirebaseDB.getAverageDriverRating(
+                                FirebaseDB.getUserDocument(uid)),
                             builder: (BuildContext context,
                                 AsyncSnapshot<double> snapshot) {
                               rating = snapshot.data;

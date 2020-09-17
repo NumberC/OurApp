@@ -5,12 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:our_app/Core/Authentication.dart';
 import 'package:our_app/Core/Business.dart';
-import 'package:our_app/Core/FirebasDB.dart';
+import 'package:our_app/Core/FirebaseDB.dart';
 import 'package:our_app/FrontEnd/Widgets/AppHeader.dart';
 import 'package:our_app/FrontEnd/Widgets/LoadingDriverResponse.dart';
 import 'package:stripe_payment/stripe_payment.dart';
 
-FirebaseDB firebaseDB = new FirebaseDB();
 Authentication auth = new Authentication();
 
 class UserProfile extends StatefulWidget {
@@ -36,7 +35,7 @@ class UserProfileState extends State<UserProfile> {
   void initState() {
     super.initState();
 
-    user = firebaseDB.getUserById(widget.uid);
+    user = FirebaseDB.getUserDocument(widget.uid);
     price = widget.price;
 
     asyncInit().then((value) {
@@ -47,19 +46,19 @@ class UserProfileState extends State<UserProfile> {
   }
 
   Future<void> asyncInit() async {
-    name = await firebaseDB.getUserNameByID(widget.uid);
-    isDriver = await firebaseDB.isDriver(user);
+    name = await FirebaseDB.getUserNameByID(widget.uid);
+    isDriver = await FirebaseDB.isDriver(user);
 
     //TODO: get profile pic
 
     FirebaseUser loggedInUser = await auth.getUser();
     if (loggedInUser != null) isSelf = loggedInUser.uid == widget.uid;
-    if (isDriver) averageRating = await firebaseDB.getAverageDriverRating(user);
+    if (isDriver) averageRating = await FirebaseDB.getAverageDriverRating(user);
 
     //TODO: get and display payment correctly
     String customerID;
     if (isSelf) {
-      String customerID = await firebaseDB.getCustomerID(user);
+      String customerID = await FirebaseDB.getCustomerID(user);
       if (customerID == null) return;
       Map<String, dynamic> d =
           await Business.getPaymentMethods(customerID); //customerID
@@ -72,13 +71,13 @@ class UserProfileState extends State<UserProfile> {
     print("Hired!");
     FirebaseUser currentUser = await auth.getUser();
     if (currentUser != null) {
-      DocumentReference userRef = firebaseDB.getUserById(currentUser.uid);
-      await firebaseDB.createNewJourney(
+      DocumentReference userRef = FirebaseDB.getUserDocument(currentUser.uid);
+      await FirebaseDB.createNewJourney(
           userRef, user, GeoPoint(34, 23), GeoPoint(34, 23));
-      showDialog(
-        context: context,
-        builder: (context) => LoadingDriverResponse(user: user).build(context),
-      );
+      // showDialog(
+      //   context: context,
+      //   builder: (context) => LoadingDriverResponse(user: user).build(context),
+      // );
     } else {
       print("LOG IN!");
     }
@@ -219,7 +218,7 @@ class UserProfileState extends State<UserProfile> {
     if (!isSelf) throw ErrorDescription("Must be self!");
     if (card == null) throw ErrorDescription("No Card Given");
 
-    String custID = await FirebaseDB().getCustomerID(user);
+    String custID = await FirebaseDB.getCustomerID(user);
     await Business.addPaymentMethod(custID, card);
   }
 
@@ -308,7 +307,7 @@ class UserProfileState extends State<UserProfile> {
                   color: primaryColor,
                 ),
                 FutureBuilder(
-                  future: firebaseDB.getUserProfilePicture(widget.uid),
+                  future: FirebaseDB.getUserProfilePicture(widget.uid),
                   builder:
                       (BuildContext context, AsyncSnapshot<String> snapshot) {
                     profilePic = snapshot.data;
@@ -338,7 +337,7 @@ class UserProfileState extends State<UserProfile> {
               ),
             if (isSelf)
               FutureBuilder(
-                future: firebaseDB.getUserRatings(user),
+                future: FirebaseDB.getUserRatings(user),
                 builder: (BuildContext context,
                     AsyncSnapshot<QuerySnapshot> snapshot) {
                   List<DocumentSnapshot> reviews =
@@ -353,7 +352,7 @@ class UserProfileState extends State<UserProfile> {
               ),
             if (isDriver)
               FutureBuilder(
-                future: firebaseDB.getDriverReviews(user),
+                future: FirebaseDB.getDriverReviews(user),
                 builder: (BuildContext context,
                     AsyncSnapshot<QuerySnapshot> snapshot) {
                   List<DocumentSnapshot> reviews =

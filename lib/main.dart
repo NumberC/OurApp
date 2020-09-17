@@ -3,11 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:our_app/Core/Business.dart';
 import 'package:our_app/Routes.dart';
+import 'package:our_app/globalVars.dart' as globalVars;
 import 'package:stripe_payment/stripe_payment.dart';
 
 Future main() async {
+  //Initialize all our global or static classes
   await DotEnv().load('.env');
   Business.init();
+  await globalVars.locationLogic.doneInitializingLocations;
   runApp(MyApp());
 }
 

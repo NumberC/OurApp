@@ -1,5 +1,3 @@
-import 'dart:ffi';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -7,21 +5,44 @@ import 'package:geocoder/geocoder.dart';
 import 'package:location/location.dart';
 import 'package:our_app/Core/Business.dart';
 import 'package:our_app/Core/LocationLogic.dart';
+import 'package:our_app/globalVars.dart' as globalVars;
 import 'package:our_app/FrontEnd/Pages/UserProfile.dart';
 
+enum journeyEndTypes { CANCELLED, FINISHED }
+
 class FirebaseDB {
-  final Firestore firestoreInstance = Firestore.instance;
-  final FirebaseStorage fireStorageInstance = FirebaseStorage.instance;
-  LocationLogic locationLogic = new LocationLogic();
+  static final Firestore firestoreInstance = Firestore.instance;
+  static final FirebaseStorage fireStorageInstance = FirebaseStorage.instance;
+  static final LocationLogic locationLogic = globalVars.locationLogic;
+
+  /*
+  Users:
+    UserID:
+      AccountID
+      CustomerID
+      Email
+      Journey
+      Name
+      isDriver
+  */
+
+  /*
+  Z- Country:
+    State:
+      Township:
+        Drivers:
+          Location
+          Reference
+  */
 
   //TODO: get a schema for FirebaseDB
   //TODO: if make a request, and no response, report it and keep a history of it
 
-  Firestore getInstance() {
+  static Firestore getInstance() {
     return firestoreInstance;
   }
 
-  Future<void> addNewUserInfo(FirebaseUser user) async {
+  static Future<void> addNewUserInfo(FirebaseUser user) async {
     if (user == null) return;
     var basicData = {
       "Location": null,
@@ -39,7 +60,7 @@ class FirebaseDB {
   }
 
   //TODO: include deleting Stripe accounts
-  Future<void> deleteUserInfo(FirebaseUser user) async {
+  static Future<void> deleteUserInfo(FirebaseUser user) async {
     DocumentReference userDoc =
         firestoreInstance.collection("Users").document(user.uid);
     CollectionReference received = userDoc.collection("RatingsReceived");
@@ -49,7 +70,7 @@ class FirebaseDB {
     await userDoc.delete();
   }
 
-  Future<void> createNewJourney(DocumentReference user,
+  static Future<void> createNewJourney(DocumentReference user,
       DocumentReference driver, GeoPoint pickup, GeoPoint deliver) async {
     DocumentReference journey =
         firestoreInstance.collection("Journeys").document();
@@ -68,7 +89,7 @@ class FirebaseDB {
     });
   }
 
-  Future<void> endOfJourney(DocumentReference journey) async {
+  static Future<void> endOfJourney(DocumentReference journey) async {
     DocumentSnapshot journeyValue = await journey.get();
     Map<String, dynamic> journeyData = journeyValue.data;
     await journeyData["Client"].updateData({"Journey": null});
@@ -76,7 +97,7 @@ class FirebaseDB {
     await journey.delete();
   }
 
-  Future<void> acceptOrDeclineJourney(
+  static Future<void> acceptOrDeclineJourney(
       DocumentReference journey, bool isAccepted) async {
     if (!isAccepted) return await endOfJourney(journey);
     await journey.updateData({
@@ -86,21 +107,35 @@ class FirebaseDB {
     });
   }
 
-  Future<DocumentReference> getJourney(DocumentReference user) async {
+  static Future<void> updateAtStore(user, atStore) async {
+    var journey = await getJourney(user);
+    await journey.updateData({
+      "hasReachedStore": atStore,
+    });
+  }
+
+  static Future<void> updateAtDestination(user, atDestination) async {
+    var journey = await getJourney(user);
+    await journey.updateData({
+      "hasReachedDestination": atDestination,
+    });
+  }
+
+  static Future<DocumentReference> getJourney(DocumentReference user) async {
     DocumentSnapshot userData = await user.get();
     return userData.data["Journey"];
   }
 
-  Future<bool> isJourneyPending(DocumentReference journeyDoc) async {
+  static Future<bool> isJourneyPending(DocumentReference journeyDoc) async {
     DocumentSnapshot journeyData = await journeyDoc.get();
     return journeyData.data["isPending"];
   }
 
-  Future<List<DocumentReference>> getNearByDrivers() async {
-    List<String> allData = await locationLogic.getAllInfo();
-    String country = allData[0];
-    String state = allData[1];
-    String town = allData[2];
+  static Future<List<DocumentReference>> getNearByDrivers() async {
+    Address address = await locationLogic.getMyAddress();
+    String country = LocationLogic.getCountryCode(address);
+    String state = LocationLogic.getState(address);
+    String town = LocationLogic.getTown(address);
 
     List<DocumentReference> nearbyDrivers = List<DocumentReference>();
 
@@ -117,30 +152,32 @@ class FirebaseDB {
     return nearbyDrivers;
   }
 
-  Future<void> addNearByDriver(DocumentReference driver) async {
-    LocationData location = await locationLogic.getLocation();
-    GeoPoint driverLoc = GeoPoint(location.latitude, location.longitude);
-    List<String> allData = await locationLogic.getAllInfo();
-    String country = allData[0];
-    String state = allData[1];
-    String town = allData[2];
+  static Future<void> addNearByDriver(DocumentReference driver) async {
+    LocationData location = locationLogic.getLocation();
+    Address address = await locationLogic.getMyAddress();
+    String country = LocationLogic.getCountryCode(address);
+    String state = LocationLogic.getState(address);
+    String town = LocationLogic.getTown(address);
+
     CollectionReference countryCollection =
         firestoreInstance.collection("Z- $country");
     CollectionReference localArea =
         countryCollection.document(state).collection(town);
 
     Map<String, dynamic> data = {
-      "Location": driverLoc,
+      "Location": location,
       "Reference": driver,
     };
     await localArea.document(driver.documentID).setData(data);
   }
 
-  Future<void> removeNearByDriver(DocumentReference driver) async {
-    List<String> allData = await locationLogic.getAllInfo();
-    String country = allData[0];
-    String state = allData[1];
-    String town = allData[2];
+//TODO: what is this?
+  static Future<void> removeNearByDriver(DocumentReference driver) async {
+    Address address = await locationLogic.getMyAddress();
+    String country = LocationLogic.getCountryCode(address);
+    String state = LocationLogic.getState(address);
+    String town = LocationLogic.getTown(address);
+
     CollectionReference countryCollection =
         firestoreInstance.collection("Z- $country");
     CollectionReference localArea =
@@ -148,7 +185,7 @@ class FirebaseDB {
     await localArea.document(driver.documentID).delete();
   }
 
-  Future<double> getAverageDriverRating(DocumentReference driver) async {
+  static Future<double> getAverageDriverRating(DocumentReference driver) async {
     double average = 0;
     QuerySnapshot reviews = await getDriverReviews(driver);
     reviews.documents
@@ -157,21 +194,13 @@ class FirebaseDB {
     return average / reviews.documents.length;
   }
 
-  Future<QuerySnapshot> getDriverReviews(DocumentReference driver) async {
+  static Future<QuerySnapshot> getDriverReviews(
+      DocumentReference driver) async {
     return await driver.collection("RatingsReceived").getDocuments();
   }
 
-  Future<Map<String, dynamic>> getDriverDataById(String id) async {
-    return await getUserDataByReference(getUserById(id));
-  }
-
-  Future<Map<String, dynamic>> getDriverDataByReference(
-      DocumentReference driver) {
-    return getUserDataByReference(driver);
-  }
-
   //Update User Info
-  Future<bool> isDriver(DocumentReference user) async {
+  static Future<bool> isDriver(DocumentReference user) async {
     if (user == null) return false;
 
     bool isDriver = false;
@@ -179,7 +208,7 @@ class FirebaseDB {
     return isDriver;
   }
 
-  Future<void> createReview(DocumentReference userReviewing,
+  static Future<void> createReview(DocumentReference userReviewing,
       DocumentReference reviewedDriver, String message, double rating) async {
     Map<String, dynamic> reviewData = {
       "Driver": reviewedDriver,
@@ -192,46 +221,33 @@ class FirebaseDB {
         .setData(reviewData);
   }
 
-  Future<void> updateUserLocationById(String id, GeoPoint loc) async {
-    await updateUserLocationByReference(getUserById(id), loc);
-  }
-
-  Future<void> updateUserLocationByReference(
-      DocumentReference user, GeoPoint loc) async {
-    await user.updateData({"Location": loc});
-  }
-
-  Future<void> updateUserLocation(DocumentReference userRef,
-      [GeoPoint loc]) async {
-    if (loc == null) {
-      LocationData locData = await LocationLogic().getLocation();
-      loc = new GeoPoint(locData.latitude, locData.longitude);
-    }
+  static Future<void> updateUserLocation(
+      DocumentReference userRef, LocationData loc) async {
     await userRef.updateData({"Location": loc});
   }
 
   //Get User Info
-  Future<GeoPoint> getUserLocation(DocumentReference userRef) async {
-    GeoPoint userLoc;
+  static Future<LocationData> getUserLocation(DocumentReference userRef) async {
+    LocationData userLoc;
     await userRef.get().then((value) => userLoc = value.data["Location"]);
     return userLoc;
   }
 
-  Future<String> getUserNameByID(String uid) async {
-    return await getUserName(getUserById(uid));
+  static Future<String> getUserNameByID(String uid) async {
+    return await getUserName(getUserDocument(uid));
   }
 
-  Future<String> getUserName(DocumentReference user) async {
+  static Future<String> getUserName(DocumentReference user) async {
     String name = "N/A";
     await user.get().then((value) => name = value.data["Name"]);
     return name;
   }
 
-  Future<QuerySnapshot> getUserRatings(DocumentReference user) async {
+  static Future<QuerySnapshot> getUserRatings(DocumentReference user) async {
     return await user.collection("RatingsGiven").getDocuments();
   }
 
-  Future<Map<String, dynamic>> getUserDataByReference(
+  static Future<Map<String, dynamic>> getUserData(
       DocumentReference user) async {
     Map<String, dynamic> userData;
     await user.get().then((value) {
@@ -240,12 +256,13 @@ class FirebaseDB {
     return userData;
   }
 
-  DocumentReference getUserById(String id) {
+  static DocumentReference getUserDocument(String id) {
     return firestoreInstance.collection("Users").document(id);
   }
 
-  Future<String> getUserProfilePicture(String id) async {
+  static Future<String> getUserProfilePicture(String id) async {
     try {
+      //await fireStorageInstance.getReferenceFromUrl("$id/Profile.png/")
       return await fireStorageInstance
           .ref()
           .child(id)
@@ -257,20 +274,20 @@ class FirebaseDB {
   }
 
 // Business With Firebase
-  Future<String> getCustomerID(DocumentReference user) async {
+  static Future<String> getCustomerID(DocumentReference user) async {
     String id;
     await user.get().then((value) => id = value.data["CustomerID"]);
     return id;
   }
 
-  Future<String> getAccountID(DocumentReference driver) async {
+  static Future<String> getAccountID(DocumentReference driver) async {
     String id;
     await driver.get().then((value) => id = value.data["AccountID"]);
     return id;
   }
 
-  Future<void> setCustomerID(DocumentReference user) async {
-    Map<String, dynamic> userData = await getUserDataByReference(user);
+  static Future<void> setCustomerID(DocumentReference user) async {
+    Map<String, dynamic> userData = await getUserData(user);
     Map<String, dynamic> customerData =
         await Business.makeCustomer(userData["Email"]);
     print(customerData);
@@ -281,8 +298,8 @@ class FirebaseDB {
     });
   }
 
-  Future<void> setAccountID(DocumentReference driver) async {
-    Map<String, dynamic> userData = await getUserDataByReference(driver);
+  static Future<void> setAccountID(DocumentReference driver) async {
+    Map<String, dynamic> userData = await getUserData(driver);
     Map<String, dynamic> accountData =
         await Business.makeUserDriver(userData["Email"]);
     await driver.updateData({
