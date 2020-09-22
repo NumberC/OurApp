@@ -9,11 +9,44 @@ import 'package:our_app/globalVars.dart' as globalVars;
 import 'package:our_app/FrontEnd/Pages/UserProfile.dart';
 
 enum journeyEndTypes { CANCELLED, FINISHED }
+enum journeyKeys {
+  CLIENT,
+  DELIVER,
+  DRIVER,
+  PICKUP,
+  REACHED_DESTINATION,
+  REACHED_STORE,
+  PENDING
+}
+
+enum userKeys {
+  EMAIL,
+  NAME,
+  ACCOUNT_ID,
+  CUSTOMER_ID,
+  JOURNEY,
+  IS_DRIVER,
+}
+
+enum userCollectionKeys {
+  RATINGS_GIVEN,
+  RATINGS_RECEIVED,
+}
+
+enum reviewKeys {
+  DRIVER,
+  REVIEW,
+  RATING,
+}
 
 class FirebaseDB {
   static final Firestore firestoreInstance = Firestore.instance;
   static final FirebaseStorage fireStorageInstance = FirebaseStorage.instance;
   static final LocationLogic locationLogic = globalVars.locationLogic;
+
+  static String enumToString(myEnum) {
+    return myEnum.toString().split(".")[1];
+  }
 
   /*
   Users:
@@ -44,14 +77,16 @@ class FirebaseDB {
 
   static Future<void> addNewUserInfo(FirebaseUser user) async {
     if (user == null) return;
+    String name = (user.displayName == null)
+        ? user.email.split("@")[0]
+        : user.displayName;
+
     var basicData = {
-      "Location": null,
-      "Name": (user.displayName == null)
-          ? user.email.split("@")[0]
-          : user.displayName,
-      "Email": user.email,
-      "isDriver": false,
-      "CustomerID": null,
+      //"Location": null,
+      enumToString(userKeys.NAME): name,
+      enumToString(userKeys.EMAIL): user.email,
+      enumToString(userKeys.IS_DRIVER): false,
+      enumToString(userKeys.CUSTOMER_ID): null,
     };
     DocumentReference userDoc =
         firestoreInstance.collection("Users").document(user.uid);
@@ -63,8 +98,10 @@ class FirebaseDB {
   static Future<void> deleteUserInfo(FirebaseUser user) async {
     DocumentReference userDoc =
         firestoreInstance.collection("Users").document(user.uid);
-    CollectionReference received = userDoc.collection("RatingsReceived");
-    CollectionReference given = userDoc.collection("RatingsGiven");
+    CollectionReference received =
+        userDoc.collection(enumToString(userCollectionKeys.RATINGS_RECEIVED));
+    CollectionReference given =
+        userDoc.collection(enumToString(userCollectionKeys.RATINGS_GIVEN));
     if (received != null) {}
     if (given != null) {}
     await userDoc.delete();
@@ -75,25 +112,29 @@ class FirebaseDB {
     DocumentReference journey =
         firestoreInstance.collection("Journeys").document();
     await journey.setData({
-      "Client": user,
-      "Driver": driver,
-      "Pickup": pickup,
-      "Deliver": deliver,
-      "isPending": true,
+      enumToString(journeyKeys.CLIENT): user,
+      enumToString(journeyKeys.DRIVER): driver,
+      enumToString(journeyKeys.PICKUP): pickup,
+      enumToString(journeyKeys.DELIVER): deliver,
+      enumToString(journeyKeys.PENDING): true,
     });
     await user.updateData({
-      "Journey": journey,
+      enumToString(userKeys.JOURNEY): journey,
     });
     await driver.updateData({
-      "Journey": journey,
+      enumToString(userKeys.JOURNEY): journey,
     });
   }
 
   static Future<void> endOfJourney(DocumentReference journey) async {
     DocumentSnapshot journeyValue = await journey.get();
     Map<String, dynamic> journeyData = journeyValue.data;
-    await journeyData["Client"].updateData({"Journey": null});
-    await journeyData["Driver"].updateData({"Journey": null});
+
+    String clientKey = enumToString(journeyKeys.CLIENT);
+    String driverKey = enumToString(journeyKeys.DRIVER);
+
+    await journeyData[clientKey].updateData({"Journey": null});
+    await journeyData[driverKey].updateData({"Journey": null});
     await journey.delete();
   }
 
@@ -101,37 +142,37 @@ class FirebaseDB {
       DocumentReference journey, bool isAccepted) async {
     if (!isAccepted) return await endOfJourney(journey);
     await journey.updateData({
-      "isPending": !isAccepted,
-      "hasReachedStore": false,
-      "hasReachedDestination": false,
+      enumToString(journeyKeys.PENDING): !isAccepted,
+      enumToString(journeyKeys.REACHED_STORE): false,
+      enumToString(journeyKeys.REACHED_DESTINATION): false,
     });
   }
 
   static Future<void> updateAtStore(user, atStore) async {
     var journey = await getJourney(user);
     await journey.updateData({
-      "hasReachedStore": atStore,
+      enumToString(journeyKeys.REACHED_STORE): atStore,
     });
   }
 
   static Future<void> updateAtDestination(user, atDestination) async {
     var journey = await getJourney(user);
     await journey.updateData({
-      "hasReachedDestination": atDestination,
+      enumToString(journeyKeys.REACHED_DESTINATION): atDestination,
     });
   }
 
   static Future<DocumentReference> getJourney(DocumentReference user) async {
     DocumentSnapshot userData = await user.get();
-    return userData.data["Journey"];
+    return userData.data[enumToString(userKeys.JOURNEY)];
   }
 
   static Future<bool> isJourneyPending(DocumentReference journeyDoc) async {
     DocumentSnapshot journeyData = await journeyDoc.get();
-    return journeyData.data["isPending"];
+    return journeyData.data[enumToString(journeyKeys.PENDING)];
   }
 
-  static Future<List<DocumentReference>> getNearByDrivers() async {
+  static Future<List<DocumentReference>> getAvailableDrivers() async {
     Address address = await locationLogic.getMyAddress();
     String country = LocationLogic.getCountryCode(address);
     String state = LocationLogic.getState(address);
@@ -152,7 +193,7 @@ class FirebaseDB {
     return nearbyDrivers;
   }
 
-  static Future<void> addNearByDriver(DocumentReference driver) async {
+  static Future<void> addAvailableDriver(DocumentReference driver) async {
     LocationData location = locationLogic.getLocation();
     Address address = await locationLogic.getMyAddress();
     String country = LocationLogic.getCountryCode(address);
@@ -165,14 +206,14 @@ class FirebaseDB {
         countryCollection.document(state).collection(town);
 
     Map<String, dynamic> data = {
-      "Location": location,
+      "Location": GeoPoint(location.latitude, location.longitude),
       "Reference": driver,
     };
     await localArea.document(driver.documentID).setData(data);
   }
 
 //TODO: what is this?
-  static Future<void> removeNearByDriver(DocumentReference driver) async {
+  static Future<void> removeAvailableDriver(DocumentReference driver) async {
     Address address = await locationLogic.getMyAddress();
     String country = LocationLogic.getCountryCode(address);
     String state = LocationLogic.getState(address);
@@ -196,7 +237,8 @@ class FirebaseDB {
 
   static Future<QuerySnapshot> getDriverReviews(
       DocumentReference driver) async {
-    return await driver.collection("RatingsReceived").getDocuments();
+    String ratingsCol = enumToString(userCollectionKeys.RATINGS_RECEIVED);
+    return await driver.collection(ratingsCol).getDocuments();
   }
 
   //Update User Info
@@ -204,19 +246,20 @@ class FirebaseDB {
     if (user == null) return false;
 
     bool isDriver = false;
-    await user.get().then((value) => isDriver = value.data["isDriver"]);
+    String isDriverStr = enumToString(userKeys.IS_DRIVER);
+    await user.get().then((value) => isDriver = value.data[isDriverStr]);
     return isDriver;
   }
 
   static Future<void> createReview(DocumentReference userReviewing,
       DocumentReference reviewedDriver, String message, double rating) async {
     Map<String, dynamic> reviewData = {
-      "Driver": reviewedDriver,
-      "Review": message,
-      "Rating": rating
+      enumToString(reviewKeys.DRIVER): reviewedDriver,
+      enumToString(reviewKeys.REVIEW): message,
+      enumToString(reviewKeys.RATING): rating
     };
     await userReviewing
-        .collection("RatingsGiven")
+        .collection(enumToString(userCollectionKeys.RATINGS_GIVEN))
         .document(reviewedDriver.documentID)
         .setData(reviewData);
   }
@@ -239,12 +282,15 @@ class FirebaseDB {
 
   static Future<String> getUserName(DocumentReference user) async {
     String name = "N/A";
-    await user.get().then((value) => name = value.data["Name"]);
+    if (user == null) return null;
+    String nameRef = enumToString(userKeys.NAME);
+    await user.get().then((value) => name = value.data[nameRef]);
     return name;
   }
 
   static Future<QuerySnapshot> getUserRatings(DocumentReference user) async {
-    return await user.collection("RatingsGiven").getDocuments();
+    String ratingsRef = enumToString(userCollectionKeys.RATINGS_GIVEN);
+    return await user.collection(ratingsRef).getDocuments();
   }
 
   static Future<Map<String, dynamic>> getUserData(
@@ -276,35 +322,37 @@ class FirebaseDB {
 // Business With Firebase
   static Future<String> getCustomerID(DocumentReference user) async {
     String id;
-    await user.get().then((value) => id = value.data["CustomerID"]);
+    String customerRef = enumToString(userKeys.CUSTOMER_ID);
+    await user.get().then((value) => id = value.data[customerRef]);
     return id;
   }
 
   static Future<String> getAccountID(DocumentReference driver) async {
     String id;
-    await driver.get().then((value) => id = value.data["AccountID"]);
+    String accountRef = enumToString(userKeys.ACCOUNT_ID);
+    await driver.get().then((value) => id = value.data[accountRef]);
     return id;
   }
 
   static Future<void> setCustomerID(DocumentReference user) async {
     Map<String, dynamic> userData = await getUserData(user);
     Map<String, dynamic> customerData =
-        await Business.makeCustomer(userData["Email"]);
+        await Business.makeCustomer(userData[enumToString(userKeys.EMAIL)]);
     print(customerData);
     print(customerData["id"]);
     //print(customerData.id);
     await user.updateData({
-      "CustomerID": customerData["id"],
+      enumToString(userKeys.CUSTOMER_ID): customerData["id"],
     });
   }
 
   static Future<void> setAccountID(DocumentReference driver) async {
     Map<String, dynamic> userData = await getUserData(driver);
     Map<String, dynamic> accountData =
-        await Business.makeUserDriver(userData["Email"]);
+        await Business.makeUserDriver(userData[enumToString(userKeys.EMAIL)]);
     await driver.updateData({
-      "AccountID": accountData["id"],
-      "isDriver": true,
+      enumToString(userKeys.ACCOUNT_ID): accountData["id"],
+      enumToString(userKeys.IS_DRIVER): true,
     });
   }
 }

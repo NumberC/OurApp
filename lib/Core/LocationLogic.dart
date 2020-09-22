@@ -20,9 +20,8 @@ class LocationLogic {
   Future get initializationDone => doneInitializingLocations;
 
   Future<void> initializeLocations() async {
-    GeolocationStatus locationPermission =
-        await Geolocator().checkGeolocationPermissionStatus();
-    if (locationPermission != GeolocationStatus.granted) return;
+    PermissionStatus locationPermission = await location.hasPermission();
+    if (locationPermission != PermissionStatus.granted) return;
 
     myLocation = await location.getLocation();
     location.onLocationChanged.listen((event) {
@@ -31,8 +30,17 @@ class LocationLogic {
     });
   }
 
+  void setOnLocation(Function(LocationData) f) {
+    location.onLocationChanged.listen(f);
+  }
+
   LocationData getLocation() {
     return myLocation;
+  }
+
+  GeoPoint getLocationGeo() {
+    if (myLocation == null) return null;
+    return GeoPoint(myLocation.latitude, myLocation.longitude);
   }
 
   Future<Address> getMyAddress() async {

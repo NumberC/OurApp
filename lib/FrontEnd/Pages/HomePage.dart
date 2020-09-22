@@ -26,7 +26,11 @@ class HomePageState extends State<HomePage> {
   FirebaseUser user;
   DocumentReference userRef;
   bool isLoggedIn;
+  bool isInJourney = false;
+  DocumentReference journey;
   LocationLogic locationLogic = globalVars.locationLogic;
+
+  //TODO: users should not be looking for other drivers while journey pending
 
   @override
   void initState() {
@@ -46,6 +50,10 @@ class HomePageState extends State<HomePage> {
     if (isLoggedIn) {
       userRef = FirebaseDB.getUserDocument(user.uid);
       isDriver = await FirebaseDB.isDriver(userRef);
+
+      //Check if the user is on a trip/journey
+      journey = await FirebaseDB.getJourney(userRef);
+      if (journey != null) return isInJourney = true;
     }
   }
 
@@ -67,7 +75,7 @@ class HomePageState extends State<HomePage> {
   }
 
   Widget getDriverActivityToggle() {
-    if (!isDriver) return Container();
+    if (!isDriver || isInJourney) return Container();
     return ToggleButtons(
       borderRadius: BorderRadius.circular(100),
       isSelected: [false, true],
@@ -75,14 +83,16 @@ class HomePageState extends State<HomePage> {
       onPressed: (index) async {
         if (index == 1) {
           //add driver as available on database
-          await FirebaseDB.addNearByDriver(userRef);
-          setState(() {
-            isInDriverMode = true;
-          });
+          if (locationLogic.getLocation() != null) {
+            await FirebaseDB.addAvailableDriver(userRef);
+            setState(() {
+              isInDriverMode = true;
+            });
+          }
         }
         if (index == 0) {
           //driver is not available on database
-          await FirebaseDB.removeNearByDriver(userRef);
+          await FirebaseDB.removeAvailableDriver(userRef);
           setState(() {
             isInDriverMode = false;
           });
@@ -149,19 +159,47 @@ class HomePageState extends State<HomePage> {
   }
 
   Widget getJourneyCancelBtn() {
-    if (!isInDriverMode) return Container();
+    if (!isInDriverMode && !isInJourney) return Container();
     return StreamBuilder(
       stream: userRef.snapshots(),
       builder: (context, AsyncSnapshot<DocumentSnapshot> snap) {
         Map<String, dynamic> userData = snap.data.data;
-        if (userData["Journey"] == null) return Container();
-        if (userData["Journey"]["isPending"] == true) return Container();
-        return FlatButton(
-          child: Text("Cancel"),
-          onPressed: () async {
-            await FirebaseDB.endOfJourney(userData["Journey"]);
+        DocumentReference journey = userData["Journey"];
+        if (journey == null) return Container();
+
+        // get the journey document
+        return FutureBuilder(
+          future: journey.get(),
+          builder: (context, AsyncSnapshot<DocumentSnapshot> journeySnap) {
+            DocumentSnapshot journeyData = journeySnap.data;
+            //check that journey is currently not pending
+            if (journeyData["isPending"] == true) return Container();
+            return FlatButton(
+              child: Text("Cancel"),
+              onPressed: () async {
+                await FirebaseDB.endOfJourney(userData["Journey"]);
+              },
+            );
           },
         );
+      },
+    );
+  }
+
+  Widget reachedTracker() {
+    if (!isDriver) return Container();
+    if (!isInJourney) return Container();
+    return StreamBuilder(
+      stream: journey.snapshots(),
+      builder: (context, AsyncSnapshot<DocumentSnapshot> snap) {
+        Map<String, dynamic> journeyData = snap.data.data;
+        //Check what they checkpoints they have gotten to
+        bool reachedDestination = journeyData["hasReachedDestination"] == true;
+        bool reachedStore = journeyData["hasReachedStore"] == true;
+
+        if (reachedDestination) Text("You reached Destination!");
+        if (reachedStore) return Text("Reach Destination");
+        return Text("Reach Store");
       },
     );
   }
@@ -193,9 +231,10 @@ class HomePageState extends State<HomePage> {
                 width: MediaQuery.of(context).size.width,
                 child: Text("hi") //MapWidget(),
                 ),
+            reachedTracker(),
             getInputTxt(context, "Store"),
             getInputTxt(context, "Address"),
-            ProfileBar(uid: "2GTpGkqfrPfLglWofym3Ag1K7IU2", price: 20),
+            ProfileBar(uid: "ZndhH0s9hhYQDTohFKPAmwvs4Ig1", price: 20),
             displayDrivers(),
             getJourneyCancelBtn(),
           ],

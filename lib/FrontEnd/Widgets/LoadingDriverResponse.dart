@@ -44,7 +44,16 @@ class LoadingDriverResponse extends StatelessWidget {
           return CircularProgressIndicator();
         var userData = snapshot.data.data;
         if (userData["Journey"] == null) return Text("Nothing yet!");
-        return getDriverRequest();
+
+        //Check if journey is pending
+        return FutureBuilder(
+          future: FirebaseDB.isJourneyPending(userData["Journey"]),
+          builder: (context, AsyncSnapshot<bool> snap) {
+            bool journeyPending = snap.data;
+            if (journeyPending) return getDriverRequest();
+            return Container();
+          },
+        );
       },
     );
   }
