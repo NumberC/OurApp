@@ -53,7 +53,11 @@ class HomePageState extends State<HomePage> {
 
       //Check if the user is on a trip/journey
       journey = await FirebaseDB.getJourney(userRef);
-      if (journey != null) return isInJourney = true;
+      print(journey);
+      if (journey != null)
+        setState(() {
+          isInJourney = true;
+        });
     }
   }
 
@@ -158,6 +162,7 @@ class HomePageState extends State<HomePage> {
     );
   }
 
+  //TODO: for both drivers and passengers
   Widget getJourneyCancelBtn() {
     if (!isInDriverMode && !isInJourney) return Container();
     return StreamBuilder(
@@ -186,20 +191,60 @@ class HomePageState extends State<HomePage> {
     );
   }
 
+  //TODO: how to handle denial
+  Future<void> denyDriverArrival(DocumentReference journey) async {
+    print("i don't know what to do here");
+  }
+
+  Future<void> confirmDriverArrival(DocumentReference journey) async {
+    await FirebaseDB.endOfJourney(journey);
+  }
+
   Widget reachedTracker() {
-    if (!isDriver) return Container();
     if (!isInJourney) return Container();
     return StreamBuilder(
       stream: journey.snapshots(),
       builder: (context, AsyncSnapshot<DocumentSnapshot> snap) {
         Map<String, dynamic> journeyData = snap.data.data;
-        //Check what they checkpoints they have gotten to
-        bool reachedDestination = journeyData["hasReachedDestination"] == true;
-        bool reachedStore = journeyData["hasReachedStore"] == true;
 
-        if (reachedDestination) Text("You reached Destination!");
-        if (reachedStore) return Text("Reach Destination");
-        return Text("Reach Store");
+        // Get keys for database referrence
+        String recDest =
+            FirebaseDB.enumToString(journeyKeys.REACHED_DESTINATION);
+        String recStore = FirebaseDB.enumToString(journeyKeys.REACHED_STORE);
+
+        //Check what checkpoints have they reached
+        bool reachedDestination = journeyData[recDest] == true;
+        bool reachedStore = journeyData[recStore] == true;
+
+        //These messages will appear to the driver
+        String storeStatus = "Reach the store";
+        String destStatus = "Reach the destination";
+        String completeStatus =
+            "You reached the Destination, but we need the passenger's approval";
+
+        //These messages will appear to the passenger
+        if (!isDriver) {
+          storeStatus = "Driver is going to the store";
+          destStatus = "Driver is going to your destination";
+          completeStatus = "The driver has arrived!";
+        }
+
+        //Display status
+        if (reachedDestination && !isDriver) {
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => showDialog(
+              context: context,
+              builder: (context) => LoadingDriverResponse.confirmJourneyEnd(
+                () async => await denyDriverArrival(journey),
+                () async => await confirmDriverArrival(journey),
+              ),
+            ),
+          );
+          return Container();
+        }
+        if (reachedDestination) return Text(completeStatus);
+        if (reachedStore) return Text(destStatus);
+        return Text(storeStatus);
       },
     );
   }
@@ -234,7 +279,7 @@ class HomePageState extends State<HomePage> {
             reachedTracker(),
             getInputTxt(context, "Store"),
             getInputTxt(context, "Address"),
-            ProfileBar(uid: "ZndhH0s9hhYQDTohFKPAmwvs4Ig1", price: 20),
+            ProfileBar(uid: "KQeRS2rZXzYUXXJMAkuv3FpgAKe2", price: 20),
             displayDrivers(),
             getJourneyCancelBtn(),
           ],

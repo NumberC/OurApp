@@ -43,11 +43,13 @@ class LoadingDriverResponse extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting)
           return CircularProgressIndicator();
         var userData = snapshot.data.data;
-        if (userData["Journey"] == null) return Text("Nothing yet!");
+        if (userData[FirebaseDB.enumToString(userKeys.JOURNEY)] == null)
+          return Text("Nothing yet!");
 
         //Check if journey is pending
         return FutureBuilder(
-          future: FirebaseDB.isJourneyPending(userData["Journey"]),
+          future: FirebaseDB.isJourneyPending(
+              userData[FirebaseDB.enumToString(userKeys.JOURNEY)]),
           builder: (context, AsyncSnapshot<bool> snap) {
             bool journeyPending = snap.data;
             if (journeyPending) return getDriverRequest();
@@ -63,11 +65,32 @@ class LoadingDriverResponse extends StatelessWidget {
     if (!snapshot.hasData) return Container();
     if (snapshot.connectionState == ConnectionState.waiting)
       return CircularProgressIndicator();
-    bool isPending = snapshot.data.data["isPending"];
-    if (isPending && snapshot.data.data["Driver"] == user)
+    bool isPending =
+        snapshot.data.data[FirebaseDB.enumToString(journeyKeys.PENDING)];
+    if (isPending &&
+        snapshot.data.data[FirebaseDB.enumToString(journeyKeys.DRIVER)] == user)
       return getDriverRequest();
     if (isPending) return CircularProgressIndicator();
     return Text("Done pending!");
+  }
+
+  // Get widget to alert passengar of driver's arrival
+  static Widget confirmJourneyEnd(Function yetToArrive, Function arrived) {
+    return AlertDialog(
+      content: Column(
+        children: [
+          Text("Your driver has arrived!"),
+          FlatButton(
+            onPressed: yetToArrive,
+            child: Text("They haven't arrived"),
+          ),
+          FlatButton(
+            onPressed: arrived,
+            child: Text("They've arrived!"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

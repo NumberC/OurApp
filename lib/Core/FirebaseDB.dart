@@ -132,9 +132,10 @@ class FirebaseDB {
 
     String clientKey = enumToString(journeyKeys.CLIENT);
     String driverKey = enumToString(journeyKeys.DRIVER);
+    String journeyKey = enumToString(userKeys.JOURNEY);
 
-    await journeyData[clientKey].updateData({"Journey": null});
-    await journeyData[driverKey].updateData({"Journey": null});
+    await journeyData[clientKey].updateData({journeyKey: null});
+    await journeyData[driverKey].updateData({journeyKey: null});
     await journey.delete();
   }
 
