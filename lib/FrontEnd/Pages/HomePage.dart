@@ -265,27 +265,29 @@ class HomePageState extends State<HomePage> {
 
     return Scaffold(
       appBar: AppHeader().build(context),
-      body: Center(
-        child: Column(
-          children: <Widget>[
-            getDriverActivityToggle(),
-            if (isDriver)
-              LoadingDriverResponse(user: userRef).getDriverPerspective(),
-            Container(
-                height: 0.2 * MediaQuery.of(context).size.height,
-                width: MediaQuery.of(context).size.width,
-                child: Text("hi") //MapWidget(),
-                ),
-            reachedTracker(),
-            getInputTxt(context, "Store"),
-            getInputTxt(context, "Address"),
-            ProfileBar(uid: "KQeRS2rZXzYUXXJMAkuv3FpgAKe2", price: 20),
-            displayDrivers(),
-            getJourneyCancelBtn(),
-          ],
+      backgroundColor: backgroundColor,
+      body: SingleChildScrollView(
+        child: Center(
+          child: Column(
+            children: <Widget>[
+              getDriverActivityToggle(),
+              if (isDriver)
+                LoadingDriverResponse(user: userRef).getDriverPerspective(),
+              Container(
+                  height: 0.2 * MediaQuery.of(context).size.height,
+                  width: MediaQuery.of(context).size.width,
+                  child: Text("hi") //MapWidget(),
+                  ),
+              reachedTracker(),
+              getInputTxt(context, "Store"),
+              getInputTxt(context, "Address"),
+              ProfileBar(uid: "KQeRS2rZXzYUXXJMAkuv3FpgAKe2", price: 20),
+              displayDrivers(),
+              getJourneyCancelBtn(),
+            ],
+          ),
         ),
       ),
-      backgroundColor: backgroundColor,
     );
   }
 }

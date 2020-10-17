@@ -142,7 +142,7 @@ class UserProfileState extends State<UserProfile> {
     );
   }
 
-  Widget getReviewContent(reviews, primaryColor, accentColor) {
+  Widget getReviewContent(List reviews, primaryColor, accentColor) {
     if (reviews.length > 0) {
       return ListView.builder(
         scrollDirection: Axis.vertical,

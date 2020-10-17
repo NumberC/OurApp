@@ -1,3 +1,4 @@
+import 'package:catcher/catcher.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -11,7 +12,11 @@ Future main() async {
   await DotEnv().load('.env');
   Business.init();
   await globalVars.locationLogic.doneInitializingLocations;
-  runApp(MyApp());
+
+  CatcherOptions debugOptions =
+      CatcherOptions(DialogReportMode(), [ConsoleHandler()]);
+
+  Catcher(MyApp(), debugConfig: debugOptions, releaseConfig: null);
 }
 
 class MyApp extends StatelessWidget {
@@ -27,6 +32,7 @@ class MyApp extends StatelessWidget {
     );
 
     return MaterialApp(
+      //navigatorKey: Catcher.navigatorKey,
       title: companyName,
       theme: ThemeData(
           primaryColor: Color.fromRGBO(42, 150, 222, 1.0),

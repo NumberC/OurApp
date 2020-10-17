@@ -150,7 +150,8 @@ class LoginPopup extends StatelessWidget {
     Color primary = Theme.of(context).primaryColor;
 
     return AlertDialog(
-      content: Wrap(children: [
+        content: SingleChildScrollView(
+      child: Wrap(children: [
         Form(
           key: formKey,
           child: Container(
@@ -184,6 +185,6 @@ class LoginPopup extends StatelessWidget {
           ),
         )
       ]),
-    );
+    ));
   }
 }

@@ -1,17 +1,18 @@
+import 'package:catcher/catcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:our_app/Core/FirebaseDB.dart';
 
 class Authentication {
-  FirebaseAuth firebaseInstance = FirebaseAuth.instance;
+  FirebaseAuth instance = FirebaseAuth.instance;
 
-  Future<bool> isUserLoggedIn() async {
-    return await firebaseInstance.currentUser() != null;
-  }
+  Future<bool> isUserLoggedIn() async => await instance.currentUser() != null;
 
-  Future<AuthResult> registerEmailPass(email, pass) async {
+  Future<AuthResult> registerEmailPass(String email, String pass) async {
     try {
-      AuthResult authResult = await firebaseInstance
-          .createUserWithEmailAndPassword(email: email, password: pass);
+      AuthResult authResult = await instance.createUserWithEmailAndPassword(
+        email: email,
+        password: pass,
+      );
       await FirebaseDB.addNewUserInfo(await getUser());
       return authResult;
     } catch (e) {
@@ -22,32 +23,32 @@ class Authentication {
 
   Future<void> deleteAccount(FirebaseUser user) async {
     await FirebaseDB.deleteUserInfo(user);
-    await user.delete();
+    try {
+      await user.delete();
+    } catch (e) {
+      print(e);
+    }
   }
 
-  Future<AuthResult> loginEmailPass(email, pass) async {
+  Future<AuthResult> loginEmailPass(String email, String pass) async {
     try {
-      return await firebaseInstance.signInWithEmailAndPassword(
+      return await instance.signInWithEmailAndPassword(
           email: email, password: pass);
     } catch (e) {
       print(e);
+      //Catcher.sendTestException();
       return null;
     }
   }
 
-  Future<void> resetPassword(email) async {
+  Future<void> resetPassword(String email) async {
     try {
-      await firebaseInstance.sendPasswordResetEmail(email: email);
+      await instance.sendPasswordResetEmail(email: email);
     } catch (e) {
       print(e);
     }
   }
 
-  Future<void> logOut() async {
-    await firebaseInstance.signOut();
-  }
-
-  Future<FirebaseUser> getUser() async {
-    return await firebaseInstance.currentUser();
-  }
+  Future<void> logOut() async => await instance.signOut();
+  Future<FirebaseUser> getUser() async => await instance.currentUser();
 }
