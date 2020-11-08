@@ -2,10 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:our_app/Core/FirebaseDB.dart';
+import 'package:our_app/Core/JourneyDB.dart';
 import 'package:our_app/Routes.dart';
 
 class LoadingDriverResponse extends StatelessWidget {
-  LoadingDriverResponse({this.user});
+  LoadingDriverResponse(this.journey);
+  JourneyDB journey;
   DocumentReference user;
 
   Widget getDriverRequest() {
@@ -17,14 +19,12 @@ class LoadingDriverResponse extends StatelessWidget {
             children: [
               FlatButton(
                   onPressed: () async {
-                    await FirebaseDB.acceptOrDeclineJourney(
-                        await FirebaseDB.getJourney(user), false);
+                    await journey.acceptOrDeclineJourney(false);
                   },
                   child: Text("No")),
               FlatButton(
                   onPressed: () async {
-                    await FirebaseDB.acceptOrDeclineJourney(
-                        await FirebaseDB.getJourney(user), true);
+                    await journey.acceptOrDeclineJourney(true);
                   },
                   child: Text("Yes")),
             ],
@@ -42,14 +42,16 @@ class LoadingDriverResponse extends StatelessWidget {
         if (!snapshot.hasData) return Container();
         if (snapshot.connectionState == ConnectionState.waiting)
           return CircularProgressIndicator();
-        var userData = snapshot.data.data;
+        var userData = snapshot.data.data();
+
+        //TODO: this shouldn't be in this file
         if (userData[FirebaseDB.enumToString(userKeys.JOURNEY)] == null)
-          return Text("Nothing yet!");
+          return Container();
 
         //Check if journey is pending
         return FutureBuilder(
-          future: FirebaseDB.isJourneyPending(
-              userData[FirebaseDB.enumToString(userKeys.JOURNEY)]),
+          initialData: false,
+          future: journey.isJourneyPending(),
           builder: (context, AsyncSnapshot<bool> snap) {
             bool journeyPending = snap.data;
             if (journeyPending) return getDriverRequest();
@@ -66,10 +68,10 @@ class LoadingDriverResponse extends StatelessWidget {
     if (snapshot.connectionState == ConnectionState.waiting)
       return CircularProgressIndicator();
     bool isPending =
-        snapshot.data.data[FirebaseDB.enumToString(journeyKeys.PENDING)];
+        snapshot.data.data()[FirebaseDB.enumToString(journeyKeys.PENDING)];
     if (isPending &&
-        snapshot.data.data[FirebaseDB.enumToString(journeyKeys.DRIVER)] == user)
-      return getDriverRequest();
+        snapshot.data.data()[FirebaseDB.enumToString(journeyKeys.DRIVER)] ==
+            user) return getDriverRequest();
     if (isPending) return CircularProgressIndicator();
     return Text("Done pending!");
   }
@@ -96,16 +98,10 @@ class LoadingDriverResponse extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      content: FutureBuilder(
-        future: FirebaseDB.getJourney(user),
-        builder: (context, AsyncSnapshot<DocumentReference> journey) {
-          if (!journey.hasData) return Container();
-          return StreamBuilder<DocumentSnapshot>(
-            stream: journey.data.snapshots(),
-            builder: (context, AsyncSnapshot<DocumentSnapshot> snapshot) =>
-                getDriverResponseChecks(snapshot),
-          );
-        },
+      content: StreamBuilder<DocumentSnapshot>(
+        stream: journey.journey.snapshots(),
+        builder: (context, AsyncSnapshot<DocumentSnapshot> snapshot) =>
+            getDriverResponseChecks(snapshot),
       ),
     );
   }

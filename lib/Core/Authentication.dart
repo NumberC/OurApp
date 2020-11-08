@@ -1,19 +1,21 @@
 import 'package:catcher/catcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:our_app/Core/FirebaseDB.dart';
+import 'package:our_app/Core/UserDB.dart';
 
 class Authentication {
   FirebaseAuth instance = FirebaseAuth.instance;
 
-  Future<bool> isUserLoggedIn() async => await instance.currentUser() != null;
+  bool isUserLoggedIn() => instance.currentUser != null;
 
-  Future<AuthResult> registerEmailPass(String email, String pass) async {
+  Future<UserCredential> registerEmailPass(String email, String pass) async {
     try {
-      AuthResult authResult = await instance.createUserWithEmailAndPassword(
+      UserCredential authResult = await instance.createUserWithEmailAndPassword(
         email: email,
         password: pass,
       );
-      await FirebaseDB.addNewUserInfo(await getUser());
+      //TODO: should authentication depend on userDB?
+      await UserDB(authResult.user.uid).createUserInfo(authResult.user);
       return authResult;
     } catch (e) {
       print(e);
@@ -21,8 +23,8 @@ class Authentication {
     }
   }
 
-  Future<void> deleteAccount(FirebaseUser user) async {
-    await FirebaseDB.deleteUserInfo(user);
+  Future<void> deleteAccount(User user) async {
+    await UserDB(user.uid).deleteUserInfo();
     try {
       await user.delete();
     } catch (e) {
@@ -30,13 +32,13 @@ class Authentication {
     }
   }
 
-  Future<AuthResult> loginEmailPass(String email, String pass) async {
+  Future<UserCredential> loginEmailPass(String email, String pass) async {
     try {
       return await instance.signInWithEmailAndPassword(
           email: email, password: pass);
     } catch (e) {
       print(e);
-      //Catcher.sendTestException();
+      Catcher.sendTestException();
       return null;
     }
   }
@@ -50,5 +52,5 @@ class Authentication {
   }
 
   Future<void> logOut() async => await instance.signOut();
-  Future<FirebaseUser> getUser() async => await instance.currentUser();
+  User getUser() => instance.currentUser;
 }

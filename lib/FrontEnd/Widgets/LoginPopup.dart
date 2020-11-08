@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:our_app/Core/Authentication.dart';
+import 'package:our_app/Routes.dart';
+import 'package:our_app/UserProfileArgs.dart';
 
 class LoginPopup extends StatelessWidget {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
@@ -53,6 +55,9 @@ class LoginPopup extends StatelessWidget {
             );
           },
         );
+      } else {
+        return Navigator.pushNamed(context, Routes.profileRoute,
+            arguments: UserProfileArgs(authResult.user.uid));
       }
     }
   }

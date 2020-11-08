@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:our_app/Core/FirebaseDB.dart';
+import 'package:our_app/Core/UserDB.dart';
 import 'package:our_app/Routes.dart';
 import 'package:our_app/UserProfileArgs.dart';
 
@@ -20,7 +21,7 @@ class ProfileBarState extends State<ProfileBar> {
   String uid;
   double price;
 
-  DocumentReference user;
+  UserDB user;
   bool isLoading = true;
   String name;
   double rating;
@@ -31,15 +32,15 @@ class ProfileBarState extends State<ProfileBar> {
 
     uid = widget.uid;
     price = widget.price;
-    user = FirebaseDB.getUserDocument(uid);
+    user = UserDB(this.uid);
     asyncInit().then((value) => setState(() {
           isLoading = false;
         }));
   }
 
   Future<void> asyncInit() async {
-    name = await FirebaseDB.getUserName(user);
-    rating = await FirebaseDB.getAverageDriverRating(user);
+    name = await user.getUserName();
+    rating = await user.getAverageDriverRating();
   }
 
   @override

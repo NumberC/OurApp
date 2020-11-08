@@ -6,8 +6,12 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:our_app/Core/Authentication.dart';
 import 'package:our_app/Core/Business.dart';
 import 'package:our_app/Core/FirebaseDB.dart';
+import 'package:our_app/Core/JourneyDB.dart';
+import 'package:our_app/Core/UserDB.dart';
 import 'package:our_app/FrontEnd/Widgets/AppHeader.dart';
 import 'package:our_app/FrontEnd/Widgets/LoadingDriverResponse.dart';
+import 'package:our_app/FrontEnd/Widgets/LoginPopup.dart';
+import 'package:our_app/Routes.dart';
 import 'package:stripe_payment/stripe_payment.dart';
 
 Authentication auth = new Authentication();
@@ -23,7 +27,7 @@ class UserProfile extends StatefulWidget {
 
 class UserProfileState extends State<UserProfile> {
   bool isLoading = true;
-  DocumentReference user;
+  UserDB user;
   String name;
   String profilePic;
   double price;
@@ -35,7 +39,7 @@ class UserProfileState extends State<UserProfile> {
   void initState() {
     super.initState();
 
-    user = FirebaseDB.getUserDocument(widget.uid);
+    user = UserDB(widget.uid);
     price = widget.price;
 
     asyncInit().then((value) {
@@ -46,19 +50,19 @@ class UserProfileState extends State<UserProfile> {
   }
 
   Future<void> asyncInit() async {
-    name = await FirebaseDB.getUserNameByID(widget.uid);
-    isDriver = await FirebaseDB.isDriver(user);
+    name = await user.getUserName();
+    isDriver = await user.isDriver();
 
     //TODO: get profile pic
 
-    FirebaseUser loggedInUser = await auth.getUser();
+    User loggedInUser = auth.getUser();
     if (loggedInUser != null) isSelf = loggedInUser.uid == widget.uid;
-    if (isDriver) averageRating = await FirebaseDB.getAverageDriverRating(user);
+    if (isDriver) averageRating = await user.getAverageDriverRating();
 
     //TODO: get and display payment correctly
     String customerID;
     if (isSelf) {
-      String customerID = await FirebaseDB.getCustomerID(user);
+      String customerID = await user.getCustomerID();
       if (customerID == null) return;
       Map<String, dynamic> d =
           await Business.getPaymentMethods(customerID); //customerID
@@ -69,16 +73,20 @@ class UserProfileState extends State<UserProfile> {
   Future<void> onHireBtnPressed() async {
     //TODO: get the async stuff under control to work with info on location
     print("Hired!");
-    FirebaseUser currentUser = await auth.getUser();
+    User currentUser = auth.getUser();
     if (currentUser != null) {
-      DocumentReference userRef = FirebaseDB.getUserDocument(currentUser.uid);
-      await FirebaseDB.createNewJourney(
-          userRef, user, GeoPoint(34, 23), GeoPoint(34, 23));
+      DocumentReference userRef = UserDB.getUserDocument(currentUser.uid);
+      await JourneyDB.createNewJourney(
+          userRef, user.getDocument(), GeoPoint(34, 23), GeoPoint(34, 23));
       // showDialog(
       //   context: context,
       //   builder: (context) => LoadingDriverResponse(user: user).build(context),
       // );
     } else {
+      showDialog(
+        context: context,
+        builder: (context) => LoginPopup().build(context),
+      );
       print("LOG IN!");
     }
   }
@@ -140,6 +148,15 @@ class UserProfileState extends State<UserProfile> {
       unratedColor: accentColor,
       itemSize: size,
     );
+  }
+
+  Future<Widget> displayDriverOrUserReviews(
+      isDriver, primaryColor, accentColor) async {
+    QuerySnapshot snap =
+        isDriver ? await user.getDriverReviews() : await user.getUserRatings();
+    //TODO: not have snap.documents here?
+    List<DocumentSnapshot> reviews = snap.documents.toList();
+    return getReviewContent(reviews, primaryColor, accentColor);
   }
 
   Widget getReviewContent(List reviews, primaryColor, accentColor) {
@@ -218,7 +235,7 @@ class UserProfileState extends State<UserProfile> {
     if (!isSelf) throw ErrorDescription("Must be self!");
     if (card == null) throw ErrorDescription("No Card Given");
 
-    String custID = await FirebaseDB.getCustomerID(user);
+    String custID = await user.getCustomerID();
     await Business.addPaymentMethod(custID, card);
   }
 
@@ -281,87 +298,87 @@ class UserProfileState extends State<UserProfile> {
 
     return Scaffold(
       appBar: AppHeader().build(context),
-      body: Padding(
-        padding: EdgeInsets.fromLTRB(20, 0, 20, 0),
-        child: Column(
-          children: <Widget>[
-            if (isSelf)
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      child: Text(
-                        "Sign Out",
-                        textAlign: TextAlign.right,
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(20, 0, 20, 0),
+          child: Column(
+            children: <Widget>[
+              if (isSelf)
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        child: Text(
+                          "Sign Out",
+                          textAlign: TextAlign.right,
+                        ),
+                        onTap: () async {
+                          await auth.logOut();
+                          Navigator.pushNamed(context, Routes.homeRoute);
+                        },
                       ),
-                      onTap: () async => await auth.logOut(),
                     ),
+                  ],
+                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Icon(
+                    Icons.arrow_left,
+                    color: primaryColor,
+                  ),
+                  FutureBuilder(
+                    initialData: null,
+                    future: user.getUserProfilePicture(),
+                    builder:
+                        (BuildContext context, AsyncSnapshot<String> snapshot) {
+                      profilePic = snapshot.data;
+                      return getProfilePicture(profilePic, primaryColor);
+                    },
+                  ),
+                  Icon(
+                    Icons.arrow_right,
+                    color: primaryColor,
                   ),
                 ],
               ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                Icon(
-                  Icons.arrow_left,
-                  color: primaryColor,
+              if (isDriver)
+                getStarRating(averageRating, primaryColor, accentColor, 40.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Text(name),
+                  if (price != null) Text("\$${price.toStringAsFixed(2)}"),
+                ],
+              ),
+              if (isSelf) getPayment(),
+              if (isSelf)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text("Reviews Given:"),
                 ),
+              if (isSelf)
                 FutureBuilder(
-                  future: FirebaseDB.getUserProfilePicture(widget.uid),
-                  builder:
-                      (BuildContext context, AsyncSnapshot<String> snapshot) {
-                    profilePic = snapshot.data;
-                    return getProfilePicture(profilePic, primaryColor);
-                  },
+                  initialData: CircularProgressIndicator(),
+                  future: displayDriverOrUserReviews(
+                      false, primaryColor, accentColor),
+                  builder: (context, widget) => widget.data,
                 ),
-                Icon(
-                  Icons.arrow_right,
-                  color: primaryColor,
+              if (isDriver)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text("Reviews Received:"),
                 ),
-              ],
-            ),
-            if (isDriver)
-              getStarRating(averageRating, primaryColor, accentColor, 40.0),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                Text(name),
-                if (price != null) Text("\$${price.toStringAsFixed(2)}"),
-              ],
-            ),
-            if (isSelf) getPayment(),
-            if (isSelf)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text("Reviews Given:"),
-              ),
-            if (isSelf)
-              FutureBuilder(
-                future: FirebaseDB.getUserRatings(user),
-                builder: (BuildContext context,
-                    AsyncSnapshot<QuerySnapshot> snapshot) {
-                  List<DocumentSnapshot> reviews =
-                      snapshot.data.documents.toList();
-                  return getReviewContent(reviews, primaryColor, accentColor);
-                },
-              ),
-            if (isDriver)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text("Reviews Received:"),
-              ),
-            if (isDriver)
-              FutureBuilder(
-                future: FirebaseDB.getDriverReviews(user),
-                builder: (BuildContext context,
-                    AsyncSnapshot<QuerySnapshot> snapshot) {
-                  List<DocumentSnapshot> reviews =
-                      snapshot.data.documents.toList();
-                  return getReviewContent(reviews, primaryColor, accentColor);
-                },
-              ),
-            if (!isSelf && isDriver) getHireButton(primaryColor),
-          ],
+              if (isDriver)
+                FutureBuilder(
+                  initialData: CircularProgressIndicator(),
+                  future: displayDriverOrUserReviews(
+                      true, primaryColor, accentColor),
+                  builder: (context, snapshot) => snapshot.data,
+                ),
+              if (!isSelf && isDriver) getHireButton(primaryColor),
+            ],
+          ),
         ),
       ),
       backgroundColor: backgroundColor,

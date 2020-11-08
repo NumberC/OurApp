@@ -35,6 +35,7 @@ dependencies:
   geolocator: ^5.3.2+2
   geocoder: ^0.2.1
   location: ^3.0.0
+  geoflutterfire: ^2.2.1
   flutter_polyline_points: ^0.2.2
 
   http: ^0.12.2
@@ -44,11 +45,11 @@ dependencies:
   stripe_payment: ^1.0.7
   
   #Firebase
-  firebase_core: ^0.4.0+9
-  firebase_analytics: ^5.0.2
-  firebase_auth: ^0.14.0+5
-  firebase_storage: ^3.1.6
-  cloud_firestore: ^0.12.9+5
+  firebase_core: ^0.5.1
+  firebase_analytics: ^6.1.0
+  firebase_auth: ^0.18.2
+  firebase_storage: ^5.0.0
+  cloud_firestore: ^0.14.2
 
 dev_dependencies:
   flutter_test:

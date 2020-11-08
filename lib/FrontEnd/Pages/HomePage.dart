@@ -5,7 +5,9 @@ import 'package:location/location.dart';
 import 'package:our_app/Core/Authentication.dart';
 import 'package:our_app/Core/Business.dart';
 import 'package:our_app/Core/FirebaseDB.dart';
+import 'package:our_app/Core/JourneyDB.dart';
 import 'package:our_app/Core/LocationLogic.dart';
+import 'package:our_app/Core/UserDB.dart';
 import 'package:our_app/FrontEnd/Widgets/AppHeader.dart';
 import 'package:our_app/FrontEnd/Widgets/LoadingDriverResponse.dart';
 import 'package:our_app/FrontEnd/Widgets/MapWidget.dart';
@@ -23,11 +25,11 @@ class HomePageState extends State<HomePage> {
   bool isLoading = true;
   bool isInDriverMode = false;
   bool isDriver = false;
-  FirebaseUser user;
-  DocumentReference userRef;
+  User user;
+  UserDB userDB;
   bool isLoggedIn;
   bool isInJourney = false;
-  DocumentReference journey;
+  JourneyDB journey;
   LocationLogic locationLogic = globalVars.locationLogic;
 
   //TODO: users should not be looking for other drivers while journey pending
@@ -35,6 +37,9 @@ class HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    user = auth.getUser();
+    isLoggedIn = user != null;
+    userDB = UserDB(user.uid);
 
     //Loads page after getting asynchronous data
     asyncInit().then(
@@ -45,16 +50,12 @@ class HomePageState extends State<HomePage> {
   }
 
   Future<void> asyncInit() async {
-    user = await auth.getUser();
-    isLoggedIn = user != null;
     if (isLoggedIn) {
-      userRef = FirebaseDB.getUserDocument(user.uid);
-      isDriver = await FirebaseDB.isDriver(userRef);
+      isDriver = await userDB.isDriver();
 
       //Check if the user is on a trip/journey
-      journey = await FirebaseDB.getJourney(userRef);
-      print(journey);
-      if (journey != null)
+      journey = JourneyDB(await JourneyDB.getJourney(userDB.user));
+      if (journey.journey != null)
         setState(() {
           isInJourney = true;
         });
@@ -78,6 +79,7 @@ class HomePageState extends State<HomePage> {
     );
   }
 
+  /*
   Widget getDriverActivityToggle() {
     if (!isDriver || isInJourney) return Container();
     return ToggleButtons(
@@ -104,6 +106,7 @@ class HomePageState extends State<HomePage> {
       },
     );
   }
+  */
 
   Future<Map<String, dynamic>> getDriversAndPrice() async {
     //List<DocumentReference> drivers = await firebaseDB.getNearByDrivers();
@@ -111,9 +114,8 @@ class HomePageState extends State<HomePage> {
     Map<String, double> finalMap = {};
 
     for (DocumentReference i in drivers) {
-      String uid = i.documentID;
-      Map<String, dynamic> driverData =
-          await FirebaseDB.getUserData(FirebaseDB.getUserDocument(uid));
+      String uid = i.id;
+      Map<String, dynamic> driverData = await UserDB(uid).getUserData();
       LocationData loc = driverData["Location"];
       LocationData myLoc = locationLogic.getLocation();
 
@@ -127,11 +129,11 @@ class HomePageState extends State<HomePage> {
     return finalMap;
   }
 
+  /*
   Future<void> updateLocationOnJourney() async {
     LocationData loc = LocationLogic().getLocation();
-    await FirebaseDB.updateUserLocation(userRef, loc);
-    var journey = await FirebaseDB.getJourney(userRef);
-    var journeyData = (await journey.get()).data;
+    //await FirebaseDB.updateUserLocation(userRef, loc);
+    var journey = JourneyDB(await JourneyDB.getJourney(userDB.getDocument()));
     bool isAtStore =
         await LocationLogic.isAtLocation(loc, journeyData["hasReachedStore"]);
     bool isAtDestination = await LocationLogic.isAtLocation(
@@ -140,10 +142,12 @@ class HomePageState extends State<HomePage> {
     if (isAtDestination)
       await FirebaseDB.updateAtDestination(user, isAtDestination);
   }
+  */
 
   Widget displayDrivers() {
     if (isInDriverMode) return Container();
     return FutureBuilder(
+      initialData: null,
       future: getDriversAndPrice(),
       builder: (context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
         Map<String, dynamic> driverMap = snapshot.data;
@@ -166,23 +170,26 @@ class HomePageState extends State<HomePage> {
   Widget getJourneyCancelBtn() {
     if (!isInDriverMode && !isInJourney) return Container();
     return StreamBuilder(
-      stream: userRef.snapshots(),
+      stream: userDB.user.snapshots(),
       builder: (context, AsyncSnapshot<DocumentSnapshot> snap) {
-        Map<String, dynamic> userData = snap.data.data;
+        if (!snap.data.exists) return Container();
+        Map<String, dynamic> userData = snap.data.data();
         DocumentReference journey = userData["Journey"];
         if (journey == null) return Container();
 
         // get the journey document
         return FutureBuilder(
+          initialData: null,
           future: journey.get(),
           builder: (context, AsyncSnapshot<DocumentSnapshot> journeySnap) {
+            if (!journeySnap.data.exists) return Container();
             DocumentSnapshot journeyData = journeySnap.data;
             //check that journey is currently not pending
             if (journeyData["isPending"] == true) return Container();
             return FlatButton(
               child: Text("Cancel"),
               onPressed: () async {
-                await FirebaseDB.endOfJourney(userData["Journey"]);
+                await this.journey.endOfJourney();
               },
             );
           },
@@ -192,20 +199,22 @@ class HomePageState extends State<HomePage> {
   }
 
   //TODO: how to handle denial
-  Future<void> denyDriverArrival(DocumentReference journey) async {
+  Future<void> denyDriverArrival(JourneyDB journey) async {
     print("i don't know what to do here");
   }
 
-  Future<void> confirmDriverArrival(DocumentReference journey) async {
-    await FirebaseDB.endOfJourney(journey);
+  Future<void> confirmDriverArrival(JourneyDB journey) async {
+    await journey.endOfJourney();
   }
 
+  //TODO: shouldn't be here either
   Widget reachedTracker() {
     if (!isInJourney) return Container();
     return StreamBuilder(
-      stream: journey.snapshots(),
+      stream: journey.journey.snapshots(),
       builder: (context, AsyncSnapshot<DocumentSnapshot> snap) {
-        Map<String, dynamic> journeyData = snap.data.data;
+        if (!snap.data.exists) return Container();
+        Map<String, dynamic> journeyData = snap.data.data();
 
         // Get keys for database referrence
         String recDest =
@@ -270,13 +279,15 @@ class HomePageState extends State<HomePage> {
         child: Center(
           child: Column(
             children: <Widget>[
-              getDriverActivityToggle(),
+              //getDriverActivityToggle(),
               if (isDriver)
-                LoadingDriverResponse(user: userRef).getDriverPerspective(),
+                LoadingDriverResponse(journey).getDriverPerspective(),
               Container(
                   height: 0.2 * MediaQuery.of(context).size.height,
                   width: MediaQuery.of(context).size.width,
-                  child: Text("hi") //MapWidget(),
+                  child: MapWidget(
+                    journey: journey,
+                  ) //MapWidget(),
                   ),
               reachedTracker(),
               getInputTxt(context, "Store"),

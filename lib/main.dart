@@ -1,16 +1,21 @@
 import 'package:catcher/catcher.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:geoflutterfire/geoflutterfire.dart';
 import 'package:our_app/Core/Business.dart';
+import 'package:our_app/Core/FirebaseDB.dart';
 import 'package:our_app/Routes.dart';
 import 'package:our_app/globalVars.dart' as globalVars;
 import 'package:stripe_payment/stripe_payment.dart';
 
 Future main() async {
   //Initialize all our global or static classes
+  final geo = Geoflutterfire();
   await DotEnv().load('.env');
   Business.init();
+  await FirebaseDB.initializeApp();
   await globalVars.locationLogic.doneInitializingLocations;
 
   CatcherOptions debugOptions =
