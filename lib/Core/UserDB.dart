@@ -1,20 +1,50 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:geoflutterfire/geoflutterfire.dart';
 import 'package:location/location.dart';
 import 'package:our_app/Core/Business.dart';
-import 'package:our_app/Core/FirebaseDB.dart';
+
+enum userKeys {
+  EMAIL,
+  NAME,
+  ACCOUNT_ID,
+  CUSTOMER_ID,
+  IS_DRIVER,
+  IS_ACTIVE,
+  LOCATION,
+}
+
+enum userCollectionKeys {
+  RATINGS_GIVEN,
+  RATINGS_RECEIVED,
+}
+
+enum reviewKeys {
+  DRIVER,
+  REVIEW,
+  RATING,
+}
 
 //Class that handles getting user information from the database
-class UserDB extends FirebaseDB {
+class UserDB {
   UserDB(this.userUID) : user = getUserDocument(userUID);
 
   final String userUID;
   final DocumentReference user;
-  static FirebaseFirestore firestoreInstance = FirebaseDB.firestoreInstance;
-  static FirebaseStorage fireStorageInstance = FirebaseDB.fireStorageInstance;
+  static FirebaseFirestore firestoreInstance = FirebaseFirestore.instance;
+  static FirebaseStorage fireStorageInstance = FirebaseStorage.instance;
 
-  static String enumToString(myEnum) => FirebaseDB.enumToString(myEnum);
+  static CollectionReference userCollection =
+      firestoreInstance.collection("Users");
+
+  static String enumToString(myEnum) => myEnum.toString().split(".")[1];
+
+  Future<LocationData> getLocation() async {
+    String locationkey = enumToString(userKeys.LOCATION);
+    DocumentSnapshot userSnap = await user.get();
+    return userSnap.get(locationkey);
+  }
 
   Future<bool> isDriver() async {
     if (user == null) return false;
@@ -38,8 +68,7 @@ class UserDB extends FirebaseDB {
       enumToString(userKeys.IS_DRIVER): false,
       enumToString(userKeys.CUSTOMER_ID): null,
     };
-    DocumentReference userDoc =
-        firestoreInstance.collection("Users").doc(user.uid);
+    DocumentReference userDoc = userCollection.doc(user.uid);
     await userDoc.set(basicData);
     await setCustomerID();
     //this.user = userDoc;
@@ -108,7 +137,7 @@ class UserDB extends FirebaseDB {
   }
 
   static DocumentReference getUserDocument(String id) {
-    return firestoreInstance.collection("Users").doc(id);
+    return userCollection.doc(id);
   }
 
   DocumentReference getDocument() => this.user;

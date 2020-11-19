@@ -54,9 +54,11 @@ class HomePageState extends State<HomePage> {
       isDriver = await userDB.isDriver();
 
       //Check if the user is on a trip/journey
-      journey = JourneyDB(await JourneyDB.getJourney(userDB.user));
-      if (journey.journey != null)
+      DocumentReference journeyDoc =
+          await JourneyDB.getJourney(userDB.getDocument());
+      if (journeyDoc != null)
         setState(() {
+          journey = JourneyDB(journeyDoc);
           isInJourney = true;
         });
     }
@@ -189,7 +191,7 @@ class HomePageState extends State<HomePage> {
             return FlatButton(
               child: Text("Cancel"),
               onPressed: () async {
-                await this.journey.endOfJourney();
+                await this.journey.endJourney();
               },
             );
           },
@@ -204,7 +206,7 @@ class HomePageState extends State<HomePage> {
   }
 
   Future<void> confirmDriverArrival(JourneyDB journey) async {
-    await journey.endOfJourney();
+    await journey.endJourney();
   }
 
   //TODO: shouldn't be here either
@@ -280,15 +282,13 @@ class HomePageState extends State<HomePage> {
           child: Column(
             children: <Widget>[
               //getDriverActivityToggle(),
-              if (isDriver)
-                LoadingDriverResponse(journey).getDriverPerspective(),
+              //if (isDriver)
+              //LoadingDriverResponse(journey).getDriverPerspective(),
               Container(
-                  height: 0.2 * MediaQuery.of(context).size.height,
-                  width: MediaQuery.of(context).size.width,
-                  child: MapWidget(
-                    journey: journey,
-                  ) //MapWidget(),
-                  ),
+                height: 0.2 * MediaQuery.of(context).size.height,
+                width: MediaQuery.of(context).size.width,
+                child: Text("Hi"), //MapWidget(journey: journey),
+              ),
               reachedTracker(),
               getInputTxt(context, "Store"),
               getInputTxt(context, "Address"),

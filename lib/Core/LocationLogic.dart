@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geocoder/geocoder.dart';
+import 'package:geoflutterfire/geoflutterfire.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:location/location.dart';
 
@@ -11,6 +12,8 @@ class LocationLogic {
   LocationData myLocation;
   Address myAddress;
   Future doneInitializingLocations;
+  final Geoflutterfire geo = Geoflutterfire();
+  GeoFirePoint myGeoLocation;
 
   // When instantiating this object, await initializationDone before working with the object
   LocationLogic() {
@@ -24,47 +27,29 @@ class LocationLogic {
     if (locationPermission != PermissionStatus.granted) return;
 
     myLocation = await location.getLocation();
+
+    double latitude = myLocation.latitude;
+    double longitude = myLocation.longitude;
+    myGeoLocation = geo.point(latitude: latitude, longitude: longitude);
+
     location.onLocationChanged.listen((event) {
       myLocation = event;
+
+      double latitude = myLocation.latitude;
+      double longitude = myLocation.longitude;
+      myGeoLocation = geo.point(latitude: latitude, longitude: longitude);
       //FirebaseDB().updateUserLocation(userRef);
     });
   }
 
-  void setOnLocation(Function(LocationData) f) {
-    location.onLocationChanged.listen(f);
-  }
+  void setOnLocation(Function(LocationData) f) =>
+      location.onLocationChanged.listen(f);
 
-  LocationData getLocation() {
-    return myLocation;
-  }
+  LocationData getLocation() => myLocation;
 
   GeoPoint getLocationGeo() {
     if (myLocation == null) return null;
     return GeoPoint(myLocation.latitude, myLocation.longitude);
-  }
-
-  Future<Address> getMyAddress() async {
-    if (myLocation == null) return null;
-    return await getAddress(myLocation.latitude, myLocation.longitude);
-  }
-
-  static Future<Address> getAddress(latitude, longitude) async {
-    if (latitude == null || longitude == null) return null;
-    List<Address> addresses = await Geocoder.local
-        .findAddressesFromCoordinates(Coordinates(latitude, longitude));
-    return addresses.first;
-  }
-
-  static String getCountryCode(Address address) {
-    return address != null ? address.countryCode : null;
-  }
-
-  static String getState(Address address) {
-    return address != null ? address.adminArea : null;
-  }
-
-  static String getTown(Address address) {
-    return address != null ? address.locality : null;
   }
 
   //TODO: actual route instead of geography

@@ -3,11 +3,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:our_app/Core/FirebaseDB.dart';
 import 'package:our_app/Core/JourneyDB.dart';
+import 'package:our_app/Core/UserDB.dart';
 import 'package:our_app/Routes.dart';
 
 class LoadingDriverResponse extends StatelessWidget {
   LoadingDriverResponse(this.journey);
-  JourneyDB journey;
+  final JourneyDB journey;
   DocumentReference user;
 
   Widget getDriverRequest() {
@@ -18,15 +19,17 @@ class LoadingDriverResponse extends StatelessWidget {
           Row(
             children: [
               FlatButton(
-                  onPressed: () async {
-                    await journey.acceptOrDeclineJourney(false);
-                  },
-                  child: Text("No")),
+                child: Text("No"),
+                onPressed: () async {
+                  await journey.acceptOrDeclineJourney(false);
+                },
+              ),
               FlatButton(
-                  onPressed: () async {
-                    await journey.acceptOrDeclineJourney(true);
-                  },
-                  child: Text("Yes")),
+                child: Text("Yes"),
+                onPressed: () async {
+                  await journey.acceptOrDeclineJourney(true);
+                },
+              ),
             ],
           ),
         ],
@@ -45,9 +48,6 @@ class LoadingDriverResponse extends StatelessWidget {
         var userData = snapshot.data.data();
 
         //TODO: this shouldn't be in this file
-        if (userData[FirebaseDB.enumToString(userKeys.JOURNEY)] == null)
-          return Container();
-
         //Check if journey is pending
         return FutureBuilder(
           initialData: false,

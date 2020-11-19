@@ -9,6 +9,7 @@ import 'package:location/location.dart';
 import 'package:our_app/Core/FirebaseDB.dart';
 import 'package:our_app/Core/JourneyDB.dart';
 import 'package:our_app/Core/LocationLogic.dart';
+import 'package:our_app/Core/UserDB.dart';
 import 'package:our_app/globalVars.dart' as globalVars;
 
 class MapWidget extends StatefulWidget {
@@ -69,8 +70,11 @@ class MapState extends State<MapWidget> {
   Future<void> asyncInit() async {
     currentLocation = await location.getLocation();
 
-    if (journey != null) {
-      driverLocation = await journey.getJourneyDriverLocation();
+    if (!journey.isEmpty()) {
+      //driverLocation = await journey.getJourneyDriverLocation();
+      DocumentReference driverRef = await journey.getDriver();
+      UserDB driver = UserDB(driverRef.id);
+      driverLocation = await driver.getLocation();
       print(driverLocation.runtimeType);
       print("HERE");
 

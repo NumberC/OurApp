@@ -15,8 +15,8 @@ class AppHeader extends StatelessWidget {
 
   Future<void> goToProfile(context) async {
     //await auth.logOut();
-    if (await auth.isUserLoggedIn()) {
-      FirebaseUser user = await auth.getUser();
+    if (auth.isUserLoggedIn()) {
+      User user = auth.getUser();
       Navigator.pushNamed(
         context,
         Routes.profileRoute,
