@@ -1,17 +1,15 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:geocoder/geocoder.dart';
 import 'package:geoflutterfire/geoflutterfire.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:location/location.dart';
 
 class LocationLogic {
   //Everything is in KILOMETERS
+  static final double nearRadius = 10;
 
-  static final double nearRadius = 0.3;
   Location location = new Location();
   LocationData myLocation;
-  Address myAddress;
   Future doneInitializingLocations;
+
   final Geoflutterfire geo = Geoflutterfire();
   GeoFirePoint myGeoLocation;
 
@@ -27,30 +25,24 @@ class LocationLogic {
     if (locationPermission != PermissionStatus.granted) return;
 
     myLocation = await location.getLocation();
-
-    double latitude = myLocation.latitude;
-    double longitude = myLocation.longitude;
-    myGeoLocation = geo.point(latitude: latitude, longitude: longitude);
+    getGeoFirePoint();
 
     location.onLocationChanged.listen((event) {
       myLocation = event;
-
-      double latitude = myLocation.latitude;
-      double longitude = myLocation.longitude;
-      myGeoLocation = geo.point(latitude: latitude, longitude: longitude);
-      //FirebaseDB().updateUserLocation(userRef);
+      getGeoFirePoint();
     });
+  }
+
+  GeoFirePoint getGeoFirePoint() {
+    double latitude = myLocation.latitude;
+    double longitude = myLocation.longitude;
+    return geo.point(latitude: latitude, longitude: longitude);
   }
 
   void setOnLocation(Function(LocationData) f) =>
       location.onLocationChanged.listen(f);
 
   LocationData getLocation() => myLocation;
-
-  GeoPoint getLocationGeo() {
-    if (myLocation == null) return null;
-    return GeoPoint(myLocation.latitude, myLocation.longitude);
-  }
 
   //TODO: actual route instead of geography
   static Future<double> getDistanceBetween(

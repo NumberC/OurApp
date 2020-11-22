@@ -14,8 +14,6 @@ import 'package:our_app/FrontEnd/Widgets/LoginPopup.dart';
 import 'package:our_app/Routes.dart';
 import 'package:stripe_payment/stripe_payment.dart';
 
-Authentication auth = new Authentication();
-
 class UserProfile extends StatefulWidget {
   UserProfile(this.uid, {this.price});
   final String uid;
@@ -55,7 +53,7 @@ class UserProfileState extends State<UserProfile> {
 
     //TODO: get profile pic
 
-    User loggedInUser = auth.getUser();
+    User loggedInUser = Authentication.getUser();
     if (loggedInUser != null) isSelf = loggedInUser.uid == widget.uid;
     if (isDriver) averageRating = await user.getAverageDriverRating();
 
@@ -73,7 +71,7 @@ class UserProfileState extends State<UserProfile> {
   Future<void> onHireBtnPressed() async {
     //TODO: get the async stuff under control to work with info on location
     print("Hired!");
-    User currentUser = auth.getUser();
+    User currentUser = Authentication.getUser();
     if (currentUser != null) {
       DocumentReference userRef = UserDB.getUserDocument(currentUser.uid);
       await JourneyDB.createNewJourney(
@@ -313,7 +311,7 @@ class UserProfileState extends State<UserProfile> {
                           textAlign: TextAlign.right,
                         ),
                         onTap: () async {
-                          await auth.logOut();
+                          await Authentication.logOut();
                           Navigator.pushNamed(context, Routes.homeRoute);
                         },
                       ),

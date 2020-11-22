@@ -46,6 +46,8 @@ class JourneyDB {
     return null;
   }
 
+  Stream<DocumentSnapshot> getSnapshots() => journey.snapshots();
+
   static Future<void> createNewJourney(DocumentReference user,
       DocumentReference driver, GeoPoint pickup, GeoPoint deliver) async {
     DocumentReference journey = journeyCollection.doc();

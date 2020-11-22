@@ -38,17 +38,11 @@ class LoadingDriverResponse extends StatelessWidget {
   }
 
   Widget getDriverPerspective() {
-    return StreamBuilder<DocumentSnapshot>(
-      stream: user.snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) return Text("Error!");
-        if (!snapshot.hasData) return Container();
-        if (snapshot.connectionState == ConnectionState.waiting)
-          return CircularProgressIndicator();
-        var userData = snapshot.data.data();
+    if (journey == null) return Container();
 
-        //TODO: this shouldn't be in this file
-        //Check if journey is pending
+    return StreamBuilder<DocumentSnapshot>(
+      stream: journey.getSnapshots(),
+      builder: (context, snap) {
         return FutureBuilder(
           initialData: false,
           future: journey.isJourneyPending(),

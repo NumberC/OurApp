@@ -46,6 +46,9 @@ class UserDB {
     return userSnap.get(locationkey);
   }
 
+  Future<void> updateLocation(dynamic loc) async =>
+      await user.update({enumToString(userKeys.LOCATION): loc});
+
   Future<bool> isDriver() async {
     if (user == null) return false;
 
@@ -109,10 +112,6 @@ class UserDB {
         .collection(enumToString(userCollectionKeys.RATINGS_GIVEN))
         .doc(reviewedDriver.id)
         .set(reviewData);
-  }
-
-  Future<void> updateUserLocation(LocationData loc) async {
-    await user.update({enumToString(userKeys.LOCATION): loc});
   }
 
   Future<double> getAverageDriverRating() async {

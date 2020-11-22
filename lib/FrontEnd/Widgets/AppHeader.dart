@@ -11,12 +11,11 @@ import 'package:our_app/main.dart';
 
 class AppHeader extends StatelessWidget {
   final String title = "OurApp";
-  Authentication auth = Authentication();
 
   Future<void> goToProfile(context) async {
     //await auth.logOut();
-    if (auth.isUserLoggedIn()) {
-      User user = auth.getUser();
+    if (Authentication.isUserLoggedIn()) {
+      User user = Authentication.getUser();
       Navigator.pushNamed(
         context,
         Routes.profileRoute,

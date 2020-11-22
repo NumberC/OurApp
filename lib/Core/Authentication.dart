@@ -4,11 +4,12 @@ import 'package:our_app/Core/FirebaseDB.dart';
 import 'package:our_app/Core/UserDB.dart';
 
 class Authentication {
-  FirebaseAuth instance = FirebaseAuth.instance;
+  static FirebaseAuth instance = FirebaseAuth.instance;
 
-  bool isUserLoggedIn() => instance.currentUser != null;
+  static bool isUserLoggedIn() => instance.currentUser != null;
 
-  Future<UserCredential> registerEmailPass(String email, String pass) async {
+  static Future<UserCredential> registerEmailPass(
+      String email, String pass) async {
     try {
       UserCredential authResult = await instance.createUserWithEmailAndPassword(
         email: email,
@@ -23,7 +24,7 @@ class Authentication {
     }
   }
 
-  Future<void> deleteAccount(User user) async {
+  static Future<void> deleteAccount(User user) async {
     await UserDB(user.uid).deleteUserInfo();
     try {
       await user.delete();
@@ -32,7 +33,8 @@ class Authentication {
     }
   }
 
-  Future<UserCredential> loginEmailPass(String email, String pass) async {
+  static Future<UserCredential> loginEmailPass(
+      String email, String pass) async {
     try {
       return await instance.signInWithEmailAndPassword(
           email: email, password: pass);
@@ -43,7 +45,7 @@ class Authentication {
     }
   }
 
-  Future<void> resetPassword(String email) async {
+  static Future<void> resetPassword(String email) async {
     try {
       await instance.sendPasswordResetEmail(email: email);
     } catch (e) {
@@ -51,6 +53,6 @@ class Authentication {
     }
   }
 
-  Future<void> logOut() async => await instance.signOut();
-  User getUser() => instance.currentUser;
+  static Future<void> logOut() async => await instance.signOut();
+  static User getUser() => instance.currentUser;
 }

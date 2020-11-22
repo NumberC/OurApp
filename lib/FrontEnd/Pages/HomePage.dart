@@ -14,8 +14,6 @@ import 'package:our_app/FrontEnd/Widgets/MapWidget.dart';
 import 'package:our_app/globalVars.dart' as globalVars;
 import 'package:our_app/FrontEnd/Widgets/ProfileBar.dart';
 
-Authentication auth = new Authentication();
-
 class HomePage extends StatefulWidget {
   @override
   HomePageState createState() => HomePageState();
@@ -37,9 +35,9 @@ class HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    user = auth.getUser();
+    user = Authentication.getUser();
     isLoggedIn = user != null;
-    userDB = UserDB(user.uid);
+    userDB = isLoggedIn ? UserDB(user.uid) : null;
 
     //Loads page after getting asynchronous data
     asyncInit().then(
@@ -147,21 +145,27 @@ class HomePageState extends State<HomePage> {
   */
 
   Widget displayDrivers() {
+    //Driver should not have to see other drivers?
     if (isInDriverMode) return Container();
-    return FutureBuilder(
-      initialData: null,
-      future: getDriversAndPrice(),
-      builder: (context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
-        Map<String, dynamic> driverMap = snapshot.data;
-        if (driverMap == null) return Container();
-        if (driverMap.length == 0) return Container();
+
+    return StreamBuilder(
+      stream: FirebaseDB.getClosestDriver(locationLogic.getGeoFirePoint()),
+      builder: (context, AsyncSnapshot<List<DocumentSnapshot>> snapshot) {
+        print("Data? ");
+        print(snapshot.hasData);
+
+        if (!snapshot.hasData) return Container();
+        print(snapshot.data);
+        List<DocumentSnapshot> drivers = snapshot.data;
+
         return ListView.builder(
           scrollDirection: Axis.vertical,
           shrinkWrap: true,
-          itemCount: driverMap.length,
+          itemCount: drivers.length,
           itemBuilder: (context, index) {
-            String currentKey = driverMap.keys.elementAt(index);
-            return ProfileBar(uid: currentKey, price: driverMap[currentKey]);
+            DocumentSnapshot driver = drivers.elementAt(index);
+            String currentKey = driver.id;
+            return ProfileBar(uid: currentKey, price: 20);
           },
         );
       },
@@ -282,8 +286,8 @@ class HomePageState extends State<HomePage> {
           child: Column(
             children: <Widget>[
               //getDriverActivityToggle(),
-              //if (isDriver)
-              //LoadingDriverResponse(journey).getDriverPerspective(),
+              if (isDriver)
+                LoadingDriverResponse(journey).getDriverPerspective(),
               Container(
                 height: 0.2 * MediaQuery.of(context).size.height,
                 width: MediaQuery.of(context).size.width,
@@ -292,7 +296,7 @@ class HomePageState extends State<HomePage> {
               reachedTracker(),
               getInputTxt(context, "Store"),
               getInputTxt(context, "Address"),
-              ProfileBar(uid: "KQeRS2rZXzYUXXJMAkuv3FpgAKe2", price: 20),
+              //ProfileBar(uid: "KQeRS2rZXzYUXXJMAkuv3FpgAKe2", price: 20),
               displayDrivers(),
               getJourneyCancelBtn(),
             ],

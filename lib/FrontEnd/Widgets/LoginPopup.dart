@@ -38,14 +38,14 @@ class LoginPopup extends StatelessWidget {
   Future<void> onForgotPasswordBtnClick() async {
     formKey.currentState.save();
     if (emailVerification(email) == null) {
-      await auth.resetPassword(email);
+      await Authentication.resetPassword(email);
     }
   }
 
   Future<void> onLoginBtnClick(context) async {
     if (formKey.currentState.validate()) {
       formKey.currentState.save();
-      var authResult = await auth.loginEmailPass(email, password);
+      var authResult = await Authentication.loginEmailPass(email, password);
       if (authResult == null) {
         showDialog(
           context: context,
@@ -65,7 +65,7 @@ class LoginPopup extends StatelessWidget {
   Future<void> onRegisterBtnClick(context) async {
     if (formKey.currentState.validate()) {
       formKey.currentState.save();
-      var authResult = await auth.registerEmailPass(email, password);
+      var authResult = await Authentication.registerEmailPass(email, password);
       if (authResult == null) {
         showDialog(
           context: context,
@@ -76,7 +76,7 @@ class LoginPopup extends StatelessWidget {
           },
         );
       } else {
-        await auth.loginEmailPass(email, password);
+        await Authentication.loginEmailPass(email, password);
       }
     }
   }
